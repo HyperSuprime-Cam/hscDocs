@@ -1,0 +1,7 @@
+*.aux
+*.dvi
+*.out
+*.cut
+*.toc
+
+description.pdf
