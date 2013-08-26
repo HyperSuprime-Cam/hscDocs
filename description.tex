@@ -6,6 +6,7 @@
 \usepackage{graphicx}
 \usepackage{longtable}
 \usepackage{hyperref}
+\usepackage{natbib}
 
 \usepackage{comment}
 \includecomment{todo}
@@ -148,16 +149,101 @@ the data will be made available.  Finally, section \ref{sec:support} contains po
 for supporting users of these data.
 
 
-
 \section{The HSC Pipeline}
 \label{sec:pipeline}
 \subsection{Software}
+
+%%%
+%%% Stolen from the proposal
+%%%
+
+To construct the HSC pipeline, we use the LSST pipeline software as the foundation.  This is a synergistic
+effort, since the pipelines have similar functionality.  By this scheme, the HSC pipeline has features and a
+maturity it would not otherwise have at this stage, and because our pipeline is based on code with a larger
+market share than ours could ever have alone, we can have greater confidence in the results.  In return, LSST
+gains testing and verification with real-world data.  However, since LSST is a larger-scale development
+project not entirely within our control, we are selective about the LSST components we use for the HSC
+pipeline, so that we are not chained to every design decision of LSST.  We have also supplemented LSST
+components with different algorithms, and added new pipeline components as necessary.  The LSST code is
+released under the GNU Public License, version 3 (or later), and our releases of our modified versions of that
+code, and our own code (as a ``derivative work'') are bound to use the same license.
+
+The pipeline is written in Python, using C++ for low-level algorithmic components where speed is important.
+SWIG is used to wrap the C++ components so they can be called directly from Python.  The combination of these
+results in all the ease and flexibility of a scripting language while retaining the power of a compiled
+language.
+
+Particular attention has been paid, in large part because of our contributions, to making the LSST pipeline
+extensible and configurable.  New camera interfaces and new measurement algorithms can be added without the
+need to redesign or even rebuild the software.  The modular design also allows for algorithms to be
+substituted at run-time, so that the pipeline can adapt to the data being processed.  These features, besides
+being useful for our adaptation of the LSST pipeline to HSC, mean that we could use our own pipeline to
+process data from other telescopes and cameras for comparison with the results of other pipelines (e.g., we
+can not only compare the results of the HSC Survey + HSC pipeline with DECam + DES pipeline, but also with
+DECam + HSC pipeline, for better diagnosis of any problems).  Interface packages have been written for LSST
+simulated images (``ImSim''), CFHT MegaCam, Subaru's Suprime-Cam, SDSS, the Space Surveillance Telescope
+(SST), DECam, and HSC simulated images.
+
+Testing with archival Suprime-Cam data (in particular, from after August 2008 when the Hamamatsu CCDs were
+installed) and more recently with HSC commissioning data has been an integral part of the pipeline development.
+
 \subsection{Data flow}
-\subsubsection{Visits}
-\subsubsection{Stacks}
-\subsubsection{Forced Measurement}
-\subsubsection{Multifit}
-\subsubsection{Differences}
+
+The pipeline consists of multiple stages in order to produce the variety of data products required to meet the
+various survey science goals.  The stages share a great deal of framework code, but differ by their inputs,
+parallelism scheme (CCD vs exposure vs sky patch) and outputs.  Different science applications will depend on
+different pipeline stages, according to the desired measurements, depth and accuracy.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[scale=0.5]{figures/HSCpipelinesketch}
+    \caption{HSC Pipeline data flow\label{fig:flow}}
+\end{figure}
+
+Figure~\ref{fig:flow} shows a schematic representation of the HSC pipeline.  Input data on the left is fed
+into the pipeline stages (light blue, center) to produce the outputs on the right.  The first three stages
+(visit processing, mosaic solution, stacking) are executed in sequence, after which all the remaining stages
+can be run in parallel.  The stages are explained in more detail below.
+
+\subsubsection{Visit processing}
+
+Visit processing removes the instrumental signature (overscan, bias, dark, flat, bad pixels, amplifier
+crosstalk) from each CCD and flags suspected cosmic-rays.  The result is a clean image for which the intensity
+is a linear function of astrophysical flux\footnote{Excepting flat-field inaccuracies, and intrinsic pixel
+  shape non-linearities.}  The background is estimated and removed, then bright sources on the image are used
+to measure the PSF and the astrometric solution and photometric zero-point, before a final detection and
+measurement pass.  From the individual CCD measurements, we determine and apply an exposure-wide astrometric
+solution and photometric zero-point.
+
+The ouputs are:
+\begin{itemize}
+\item Image
+\item PSF
+\item Background
+\item Sources
+\item Astrometric solution
+\item Photometric zero point
+\end{itemize}
+
+\subsubsection{Mosaic solution}
+
+Once several exposures overlapping the same part of sky are available, we can determine a mosaic solution.
+This involves solving for consistent astrometric solutions and photometric zero-points for the set of
+exposures, using sources in common to multiple exposures, in the same manner as \citet{2008ApJ...674.1217P}.
+This allows increased accuracy and precision relative to the visit processing, by allowing use of stars
+fainter than in our original reference catalog (e.g., SDSS), and incorporating spatial information unavailable
+from single exposures.
+
+
+\subsubsection{Stacking}
+
+
+
+
+\subsubsection{Forced Stack Measurement}
+\subsubsection{MultiFit}
+\subsubsection{Forced Visit Measurement}
+\subsubsection{Differencing}
 \subsection{Releases}
 \subsubsection{Daily}
 \subsubsection{Monthly}
@@ -174,7 +260,7 @@ for supporting users of these data.
 \subsubsection{Stacks}
 \subsubsection{Forced Visit Measurements}
 \subsubsection{Forced Stack Measurements}
-\subsubsection{Multifit}
+\subsubsection{MultiFit}
 \subsubsection{Differences}
 \subsection{Database}
 \subsubsection{Schema}
@@ -185,6 +271,30 @@ for supporting users of these data.
 \subsection{Measurements}
 \subsection{Background Matching}
 \subsection{CoaddPsf}
+\subsection{Skymap}
+
+The ``skymap'' is a tessellation of the sky, providing suitable pre-defined coordinate systems for operations
+on the sky such as stacking.  The sky map divides the sky into ``tracts''.  For convenience and parallelism,
+each tract is sub-divided into ``patches''.  Tracts and patches overlap, so that sources are not lost in the
+gaps.  These overlaps can be both annoying (additional care is required to remove duplicate sources) and
+useful (additional source of quality checking).
+
+Our tracts tangent planes (\code{TAN} WCS) distributed in rings of Declination, which matches well with the
+survey geometry.  This has more inefficiency (tract overlap) at the pole, but since our survey doesn't cover
+that area, it's not a problem.  Individual tracts are roughly the same size as the field of view of HSC, and
+have North and East vectors aligned with the columns and rows, respectively.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[scale=0.3]{figures/rings_equat.png}
+    \includegraphics[scale=0.3]{figures/rings_pole.png}
+    \caption{Demonstration of the skymap scheme we will use for the HSC pipeline.  Left: Equatorial
+      projection.  Right: Polar projection.  Note that the tracts shown here are very much larger than we will
+      use in practise; the large tracts allows the characteristics of the tessellation (e.g., the larger
+      overlap at the poles) to be more clearly discerned.\label{fig:skymap}}
+\end{figure}
+
+\subsection{Mosaic}
 
 \section{External Interfaces}
 \label{sec:interfaces}
@@ -197,6 +307,10 @@ for supporting users of these data.
 \subsection{Forum}
 \subsection{Mailing list}
 
+\clearpage
+
+\bibliographystyle{}
+\bibliography{pipeline/pipeline}
 
 \begin{todo}
 \clearpage
