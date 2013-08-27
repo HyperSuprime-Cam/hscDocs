@@ -92,7 +92,7 @@
 
 This document describes the Hyper Suprime-Cam (HSC) Survey Pipeline, which will be used to process the survey
 observations and deliver data products with a consistent high quality to the collaboration, and ultimately to
-the world, for the realisation of the survey science goals.
+the world, for the realization of the survey science goals.
 
 \subsection{Hyper Suprime-Cam}
 
@@ -114,7 +114,7 @@ Details of the instrument are summarized in the HSC
 Design Review
 Booklet\footnote{\url{http://anela.mtk.nao.ac.jp/hypersuprime/presentation/hscreview20090227final_combined.pdf}}. The
 official HSC
-webpage\footnote{\url{http://www.naoj.org/Projects/HSC/index.html}}
+web page\footnote{\url{http://www.naoj.org/Projects/HSC/index.html}}
 provides up-to-date information.
 
 \subsection{The HSC Survey}
@@ -241,7 +241,7 @@ to measure the PSF and the astrometric solution and photometric zero-point, befo
 measurement pass.  From the individual CCD measurements, we determine and apply an exposure-wide astrometric
 solution and photometric zero-point.
 
-The ouputs are:
+The outputs are:
 \begin{itemize}
 \item Image
 \item PSF
@@ -262,6 +262,7 @@ from single exposures.
 
 
 \subsubsection{Stacking}
+\label{flow:stack}
 
 Stacking involves the coaddition of multiple images to produce a single, deeper image.  We apply the results
 of mosaic solution to the input images, warp them to a common coordinate system (``sky map'';
@@ -271,7 +272,7 @@ includes a couple of recent innovations to increase the quality of the stacks.
 Stacks are normally produced by first subtracting the background, but determining the background from
 individual visits separately is problematic (because different choices can be made in each), commonly observed
 as dark rings around bright stars and galaxies.  Instead, we perform ``background matching''
-(\S\ref{alg:backgroundMatching}) to produce a stack with a high signal-to-noise realisation of the background
+(\S\ref{alg:backgroundMatching}) to produce a stack with a high signal-to-noise realization of the background
 in a single reference exposure.  This background can then be measured over wide scales and subtracted with a
 high degree of accuracy.
 
@@ -314,6 +315,61 @@ time-dependent quantities degenerate with shape on the coadds (for example, the 
 plan to fit will not allow for flux variability.  We expect these will be the best possible measurements of
 the position, shape and flux of objects of constant flux.
 
+%%%
+%%% Contribution from Jim Bosch
+%%%
+For some measurements - particularly shape measurement for weak
+lensing - measurement on a coadd image may not provide the necessary
+precision and control of systematics.  To perform these measurements,
+we will use what we call a ``multifit'' approach, in which a
+parametrized model for each astronomical object is fit simultaneously
+to all of the data in which that object appears.  Rather than
+transform and combine the data, we instead transform the model to the
+coordinate system of each exposure, convolve it by the appropriate
+PSF, and compare it to the data from that exposure.  Measurements from
+the coadd will be used as a starting point, so the multifit processing
+will proceed by iterating over the catalog generated from the coadd,
+loading postage stamps from the original images, and fitting to these
+data.  Note that the output measurements will generally have the same
+form as the coadd-based measurements - one set of measurements per
+astronomical object; there is a single set of the
+parameters that describe each object, not a different set of parameters
+for each exposure in which it appears.
+
+Because it does not involve transforming noisy data (which is usually
+lossy in some sense), and instead transforms analytic models, a
+multifit approach is theoretically optimal for measurements that can
+be framed as the results of model-based fits to the data (note that
+not all measurements can be framed in such a way, but those that
+cannot usually do not properly account for the PSF).  While it may be
+possible to construct an optimal coadd that would also be
+theoretically optimal, we expect that the difficulty in creating such
+a coadd (i.e. perfectly tracking the covariances between pixels
+introduced by resampling to a common pixel grid) would be prohibitive
+complex.  On the other hand, for many measurements a non-optimal coadd
+of the sort described in Section~\ref{flow:stack} may be practically
+sufficient, in the sense that the improvement produced by a
+multifit-based measurement of the same would be negligible.  In these
+cases, the coadd measurement is likely to be far more efficient
+computationally.  Whenever possible, then, we will do as much work as
+possible on the coadd first, and only use a multifit approach to ``tune up''
+the final result.  And when this final tuning is determined to be
+unnecessary, it can be skipped entirely.
+
+The details of the algorithms we will use with the multifit approach
+are still uncertain.  We will almost certainly include some sort
+of Sersic-based galaxy modelling, likely with both bulge and disk
+components, but we may hold some parameters or ratios of parameters
+fixed.  This will provide one of our two main approaches to
+computing galaxy colors (the other will be galaxy model fits to
+PSF-matched coadds), and will constitute one of many appproaches to
+shape measurement for weak lensing.  It is also unclear yet whether
+these fits will be standard maximum-likelihood fits or a Bayesian
+approach that involves sampling from the full likelihood surface
+\cite{BA2013,Miller2013}.
+
+
+
 \subsubsection{Forced Visit Measurement}
 
 The deep stack catalog of a nominated band ($i$-band) will be used as a reference to measure the sources in
@@ -325,7 +381,7 @@ every available visit.  This produces time-resolved positions (for proper motion
 
 The deep stack images will be used as references to be subtracted from individual visits (or
 nightly/monthly/yearly stacks of visits) in order to identify and measure transients.  We will use PSF matching
-(\S\ref{alg:psfMatching}) to minimise false positives, but further work will be needed to produce a clean
+(\S\ref{alg:psfMatching}) to minimize false positives, but further work will be needed to produce a clean
 candidate list.
 
 At the present time, the differencing stage has been greatly neglected in the development of the pipeline, as
@@ -352,7 +408,7 @@ will be placed in a suitable location for bulk download by the transients workin
 \subsubsection{Monthly}
 
 Aware of the great interest in the HSC survey observations by the collaboration members, and desiring to
-encourage independent quality analyses, we will endeavour to produce a preview of the processed data (through
+encourage independent quality analyses, we will endeavor to produce a preview of the processed data (through
 all the pipeline stages) to the collaboration as soon as possible after the observing run.  {\bf It should
 be understood that these releases will be preliminary, and made on a best-efforts basis.}  The released data
 will be in the form of FITS images for bulk download and a database accessed in the usual manner.
@@ -389,10 +445,10 @@ files.
 The mask planes are listed in the mask HDU header (with prefixes \code{MP}).  The symbolic names correspond
 to:
 \begin{itemize}
-\item \code{BAD}: the detector pixel is believed to be bad (e.g., non-functional, uncalibratable, or
+\item \code{BAD}: the detector pixel is believed to be bad (e.g., non-functional, un-calibratable, or
   significantly vignetted).
-\item \code{SAT}: the pixel was over the full well depth, and therefore likely leaked charge to its neighbours.
-\item \code{INTRP}: the pixel value has been derived from interpolating from neighbours, and therefore does
+\item \code{SAT}: the pixel was over the full well depth, and therefore likely leaked charge to its neighbors.
+\item \code{INTRP}: the pixel value has been derived from interpolating from neighbors, and therefore does
   not properly represent the original value, e.g., if it was originally saturated or flagged as a cosmic ray.
 \item \code{CR}: the pixel is believed to be contaminated by a cosmic ray hit.
 \item \code{EDGE}: the pixel is close to the edge of the detector, and therefore the source detection threshold will be higher than usual; this has also been used to flag pixels in stacks that have no known value.
@@ -437,7 +493,7 @@ experience for SDSS.  We encourage collaboration members to discuss with us the 
 measurements or flags that are lacking in the catalogs, so that we can develop and include them.
 
 Catalogs are stored internal to the pipeline as FITS tables.  In these tables, the flags are combined into
-a single bit array (FITS format code \code{X}); your software may or may not recognise the flag names in the
+a single bit array (FITS format code \code{X}); your software may or may not recognize the flag names in the
 header.  In general, it should not be necessary for those outside the pipeline team to read these FITS tables,
 as the database (\S\ref{sec:database}) should contain all the same information.
 
@@ -515,6 +571,25 @@ The following measurements will be made as part of MultiFit:
 \item Star/galaxy indicator.
 \end{itemize}
 
+%%%
+%%% Contribution from Jim Bosch
+%%%
+As noted in Section~\ref{sec:multifit-intro}, the output catalogs
+produced by multifit-based measurement algorithms will have the same
+form as those produced by coadd-based measurement algorithms.  In
+particular, there will not be any per-exposure information in the
+multifit outputs, despite the fact that the measurements will fit the
+model to the original exposure-level data.
+
+However, it should be noted that the forced measurements discussed in
+Section~\ref{sec:forced-measurement-cats} could be performed either by
+iterating over exposures and looking up the associated detections from
+the coadd (as has been described above) or by iterating over all coadd
+detections and fitting to the associated postage stamps from
+individual exposures (as is done with multifit).  Which of these
+approaches we actually take should be considered an implementation
+detail, and will not change the outputs described in
+Section~\ref{sec:forced-measurement-cats}.
 
 \subsubsection{Differences}
 
@@ -566,7 +641,7 @@ therefore measurements may be impacted only subtly), while \code{<flag>.center} 
 $3\times 3$ region about the peak have been affected (and therefore measurements may be drastically wrong).
 
 \begin{itemize}
-\item \code{flags.pixel.interpolated}: pixels masked as \code{INTERP}, i.e., have been interpolated over, and
+\item \code{flags.pixel.interpolated}: pixels masked as \code{INTRP}, i.e., have been interpolated over, and
   are therefore not the original pixels; this is done for saturated pixels and cosmic rays.
 \item \code{flags.pixel.saturated}: pixels masked as \code{SAT}, i.e., are saturated (over full well depth).
 \item \code{flags.pixel.suspect}: pixels masked as \code{SUSPECT}, i.e., are non-linear.
@@ -707,6 +782,8 @@ decomposition).  This is similar to the SDSS ``cmodel'' fluxes \citep{SdssPhoto}
 constructed approximately from sums of Gaussians (8 for each profile; \citealt{HoggLangMoG}), and are
 convolved with a shapelet approximation of the PSF.
 
+\tbd{Additional columns from multiShapelet, e.g., devfrac?}
+
 \paragraph{flux.kron}
 Flux using an elliptical aperture defined by \citet{1980ApJS...43..305K}: the Kron radius is measured as the
 moment within an (elliptical) aperture of six times the (adaptive) moment, and the Kron flux is measured
@@ -776,6 +853,47 @@ pioneered by \citealt{2012arXiv1210.2732J} on the Deep Lens Survey).  In this wa
 the complicated (and discontinuously variable) PSF over the stacked image.  We expect these measurements will
 be scientifically useful in their own right, and they will be available relatively quickly, but will not be
 the most accurate possible because the stacking process necessarily discards data.
+
+%%%
+%%% Contribution from Jim Bosch
+%%%
+One of the main challenges in producing quality measurements from
+non-PSF-matched coadds is the complexity of the effective point-spread
+function on the coadd.  Because the PSF has discontinuities at the
+location of chip boundaries, modeling approaches based on
+interpolating with smooth functions cannot be used.  Instead, when
+creating a coadd image, we also combine the PSF models of all the
+input exposures, using an approach similar to that devised by
+\cite{JT2011}.  This combination is lazy, in that we simply store the
+PSF models, their bounding boxes, and the coordinate transforms that
+relate them to the coadd pixel grid.  Then, when measuring an object
+on the coadd, we obtain the coadd PSF model at that location by coadding the
+PSF models of all exposures that contributed to the relevant part of
+the coadd, after warping them by the appropriate coordinate
+transform.  We approximate the PSF as spatially constant in the region
+of an individual object.
+
+This approach is not exact in the presence of missing data.  When a
+particular exposure pixel does not contribute to the coadd, the
+associated PSF should not contribute as well, but the cost of storing
+a mask mapping these rejected pixels along with the PSF is currently
+prohibitively expensive, so the PSF combination algorithm does not
+consider rejected or masked pixels.  More importantly, when only
+certain pixels that contribute to an object are rejected, the PSF
+model on the coadd is not well-defined for that object; we cannot
+represent the coadd as the convolution of an idealized astrophysical
+object with any convolution kernel.  This is a particular problem for
+stars that are near the saturation limit: if they are saturated in
+some frames, but not others, accurate coadd measurements become
+essentially impossible.  Cosmic rays will also contribute to this
+effect for many more objects, but at a lower level, and objects whose
+isophotes cross a chip boundary in one or more input exposures will
+also be affected.  It is worth
+noting that this requires coaddition to be based on a straightforward
+mean with as little clipping as possible; both median
+stacking and aggressive clipping will cause the PSF of the coadd to be
+poorly-defined, and a poor match to the model produced by the CoaddPsf
+approach.
 
 \subsection{Skymap}
 \label{alg:skymap}
@@ -1042,6 +1160,52 @@ code supports using Lanczos (of configurable order), bilinear or nearest-neighbo
 Lanczos (with $10^6$ cache realisations), as a compromise between the infinite Sinc function and the need for
 speed.
 
+\subsection{MultiShapelet}
+
+PSF-convolved galaxy models are a major
+component of both galaxy flux measurements and shape
+measurement for weak lensing.  Convolving and evaluating these models
+on a pixel grid is both computationally expensive and difficult from
+an accuracy perspective, so as a baseline approach we have adopted the
+methods of \cite{HL2013} and \cite{Bosch2010}, in which a fixed-slope
+Sersic profile is approximated by a sum of Gaussians,
+and convolved analytically with a PSF model approximated as a sum of
+multi-scale shapelet functions.  Aside from speed, a major advantage
+of this approach is its transparency: while we must approximate both
+the galaxy profile and the PSF model, these approximations are
+explicit, and we can increase the fidelity of both in a
+straightforward way.  Alternative methods that involve convolutions in
+real-space or Fourier-space involve difficult decisions with much less
+clear impacts on the fidelity of the models, involving how to
+handle the wide range spatial frequencies caused by the cuspy cores
+and broad wings of realistic galaxy profiles.
+
+One distinct disadvantage of this ``multishapelet'' approach to galaxy
+modeling construction is that it cannot easily handle Sersic models in
+which the Sersic index is a free parameter; the sum of Gausssians that
+approximates a Sersic profile with a certain Sersic index must be
+precomputed.  We can fit linear combinations of fixed-index Sersic
+profiles, however, and these fits are signficantly more
+numerically stable.  The linear combination amplitudes also show a tight
+correlation with free-index Sersic (NEED REFERENCE FROM SDSS; RHL
+SHOULD KNOW OF ONE), which may mean that true free-index Sersic fits
+may be unnecessary.
+
+Exactly which models will be fit and which parameters will be allowed
+to vary is a current research topic, but as a baseline we have
+implemented the same approach used in the SDSS ``cmodel'' magnitudes
+(CITE SDSS PHOTO ``PAPER''),
+in which a pure exponential and pure de Vaucouleur are each fit
+separately, and then their linear combination is fit while the ellipse
+parameters are held fixed.  We will also explore the two component
+partial bulge+disk fit used in \cite{Miller2013}, in which the bulge
+radius is a fixed fraction of the disk radius and the ellipticity of
+both components are the same, as well as true bulge+disk fits with
+more free parameters.  We may try models with more than two components
+as well, in the hopes of providing an even better analogue to
+free-index single-Sersic fits.
+
+
 
 \section{External Interfaces}
 \label{sec:interfaces}
@@ -1082,3 +1246,5 @@ accessible, at \url{http://jeeves.astro.princeton.edu/pipermail/hsc_software/}
 \bibliography{pipeline/pipeline}
 
 \end{document}
+
+%%  LocalWords:  Suprime HSC
