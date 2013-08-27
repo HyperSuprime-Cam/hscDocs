@@ -8,10 +8,7 @@
 \usepackage{hyperref}
 \usepackage{natbib}
 
-\usepackage{comment}
-\includecomment{todo}
-%\excludecomment{changelog}
-%\excludecomment{todo}
+\newcommand\tbd[1]{\textbf{\color{red}(#1)}}
 
 \newcommand\x         {\hbox{$\times$}}
 \newcommand\othername {\hbox{$\dots$}}
@@ -27,12 +24,35 @@
 \def\kms   {\hbox{km s$^{-1}$}}
 \def\email#1{\href{mailto:#1}{\tt #1}}
 
-\usepackage[usenames]{color} 
+\usepackage[usenames]{color}
 \newcommand{\G}[1]{{\color{red} #1}}
 \newcommand{\B}[1]{{#1}}
 \newcommand{\R}[1]{{\color{red}}}
-\newcommand{\code}[1]{\texttt{#1}}
 
+% \code{...} sets code in \tt and escapes most special characters.  Doesn't
+% handle {} correctly, but \CODE.anything but period. does (actually, you
+% may use any character as a delimiter).
+% Designed for a word or two of code inline; use
+% \begin{verbatim}...\end{verbatim} for longer blocks
+\def\uncatcodespecials{\def\do##1{\catcode`##1=12}\dospecials}%
+{\catcode`\`=\active\gdef`{\relax\lq}}% this line inhibits Spanish ligatures ?` and !` of \tt font
+\def\setupcode % see TeX Book, p. 381
+    {\tt %
+     \spaceskip=0pt \xspaceskip=0pt % just in case...
+     \catcode`\`=\active
+     \uncatcodespecials \obeyspaces
+     \catcode`\{=1\catcode`\}=2
+    }%
+\def\SETUPCODE % see TeX Book, p. 381
+    {\tt %
+     \spaceskip=0pt \xspaceskip=0pt % just in case...
+     \catcode`\`=\active
+     \uncatcodespecials \obeyspaces
+    }%
+\def\docode#1{#1\endgroup}%
+\def\DOCODE#1{\def\next##1#1{##1\endgroup}\next}%
+\def\code{\begingroup\setupcode\docode}%
+\def\CODE{\begingroup\SETUPCODE\DOCODE}%
 
 
 \title{Hyper Suprime-Cam Survey \\
@@ -77,7 +97,7 @@ the world, for the realisation of the survey science goals.
 \subsection{Hyper Suprime-Cam}
 
 %%%
-%%% Stolen from the proposal, with some edits
+%%% Stolen from the SSP proposal, with some edits
 %%%
 
 Hyper Suprime-Cam takes advantage of the full accessible field of view of the Subaru telescope (1.5~deg$^2$
@@ -100,7 +120,7 @@ provides up-to-date information.
 \subsection{The HSC Survey}
 
 %%%
-%%% Stolen from the proposal, with edits
+%%% Stolen from the SSP proposal, with edits
 %%%
 
 The HSC Survey was initiated to address key scientific questions using the new capabilities afforded by HSC.
@@ -155,7 +175,7 @@ for supporting users of these data.
 \subsection{Software}
 
 %%%
-%%% Stolen from the proposal
+%%% Stolen from the SSP proposal
 %%%
 
 To construct the HSC pipeline, we use the LSST pipeline software as the foundation.  This is a synergistic
@@ -361,6 +381,25 @@ variance plane.  The World Coordinate System (WCS) in the headers shall use the 
 further extensions (e.g., for the PSF).  We encourage the use of our software in reading and manipulating the
 files.
 
+The mask planes are listed in the mask HDU header (with prefixes \code{MP}).  The symbolic names correspond
+to:
+\begin{itemize}
+\item \code{BAD}: the detector pixel is believed to be bad (e.g., non-functional, uncalibratable, or
+  significantly vignetted).
+\item \code{SAT}: the pixel was over the full well depth, and therefore likely leaked charge to its neighbours.
+\item \code{INTRP}: the pixel value has been derived from interpolating from neighbours, and therefore does
+  not properly represent the original value, e.g., if it was originally saturated or flagged as a cosmic ray.
+\item \code{CR}: the pixel is believed to be contaminated by a cosmic ray hit.
+\item \code{EDGE}: the pixel is close to the edge of the detector, and therefore the source detection threshold will be higher than usual; this has also been used to flag pixels in stacks that have no known value.
+\item \code{DETECTED}: the pixel contains a source that has been detected.
+\item \code{DETECTED_NEGATIVE}: the pixel contains a negative source that has been detected (usually in the
+  difference stage).
+\item \code{SUSPECT}: the pixel is non-linear.
+\item \code{UNMASKEDNAN}: the pixel contained a \code{NaN} (not-a-number) value that has been suppressed.
+\item \code{SYMM_1SIG}, \code{SYMM_3SIG} and \code{MONOTONIC_1SIG}: these are set in the deblender, as an aid
+  in determining object shapes.
+\end{itemize}
+
 The images are provided principally for the sake of verifying candidates, quality analysis, and to enable
 extensive analyses not supported by the pipeline.  If you desire the images in order to generate your own
 catalogs (e.g, with SExtractor), please consider using the pipeline catalogs instead, as this will benefit
@@ -488,6 +527,7 @@ The following measurements will be made as part of differences processing:
 
 \subsection{Database}
 \label{sec:database}
+\tbd{Takata-san to provide.}
 \subsubsection{Schema}
 
 \section{Algorithms}
@@ -549,13 +589,9 @@ the PSF at the position of the object failed, and therefore the PSF flux correct
 
 \subsubsection{Deblending flags}
 
-The deblender (\S\ref{alg:deblender}) sets some flags based on its interpretation of the source:
-\begin{itemize}
-\item \code{deblend.deblended-as-psf} is set if the deblender considered the source as a PSF.
-\item \code{deblend.too-many-peaks} is set if the deblender attempted to divide the source beyond a limit;
-  only the brightest peaks were deblended.
-\item \code{deblend.failed} is set if deblending failed on this source.
-\end{itemize}
+The deblender records some details of the deblending through various flags and values in the catalog; see
+\S\ref{alg:deblender}.  These allow blended sources to be identified and the family (parents, children,
+siblings) to be identified.
 
 \subsubsection{Other}
 
@@ -568,14 +604,165 @@ The deblender (\S\ref{alg:deblender}) sets some flags based on its interpretatio
 
 \subsection{Measurements}
 \label{alg:measurements}
+
+The measurement framework we have developed is extensible, so that additional measurement algorithms can
+easily be introduced (with only minor additions to the configuration files).  The current measurement
+algorithms we use are described below.  The names used refer to the colum names in the catalogs produced by the
+pipeline; \tbd{the mapping of these names to the database is not yet known}.
+
+\subsubsection{Centroids}
+
+Each centroiding algorithm provides the centroid (in a column named directly after the algorithm) and a packed
+covariance matrix (\code{<algorithm>.err}); note that the covariance term is often \tbd{always?} unset.
+
+\paragraph{centroid.sdss}
+The same centroiding algorithm as employed in SDSS \citep{SdssPhoto}, wherein the image is smoothed by the
+PSF, and a Gaussian Quartic Interpolation is applied to the pixels surrounding the peak which, in particular,
+works for critically-sampled images (whereas a simple parabolic fit does not).  The peak determination is
+repeated with the smoothed image binned down, so that a reliable center is produced for extended sources.
+David Monet (USNO) reports that this algorithm performs as well as {\sc SExtractor}, and it is our principal
+centroider.
+
+\paragraph{centroid.gaussian}
+A Gaussian is fit to the source.  Despite originally being developed by David Monet (USNO) for astrometric
+use, Monet reports this algorithm is inferior to the SDSS centroid algorithm.
+
+\paragraph{centroid.naive}
+A simple, unweighted first moment of the $3\times 3$ pixels around the peak.  This is not a very good centroider (it doesn't use the entire PSF), but is cheap.
+
+\subsubsection{Shapes}
+
+Shape algorithms should provide a shape (typically the 3 second moments; in a column named directly after the
+algorithm) and a packed covariance matrix (\code{<algorithm>.err}).  However, because there are different
+ways of measuring shapes, there is a diversity of measurements; when a measurement algorithm breaks from the
+standard pattern, we detail the outputs.
+
+\paragraph{shape.sdss}
+The SDSS adaptive moments, whereby the second moments are measured iteratively, with a Gaussian weight with
+size set from the previous iteration.
+
+\paragraph{shape.hsm}
+Various shape measurements intended for weak lensing, originally developed by \citet{2003MNRAS.343..459H} and
+tested on SDSS by \citet{2005MNRAS.361.1287M}.  The PSF correction methods are:
+\begin{itemize}
+  \item \code{shape.hsm.ksb}: The KSB \citep{1995ApJ...449..460K} method.
+  \item \code{shape.hsm.bj}: The BJ method from \citet{2002AJ....123..583B} Appendix~C.
+  \item \code{shape.hsm.linear}: The ``linear'' method, a variation of method (b) described in Appendix B of \citet{2003MNRAS.343..459H}.
+  \item \code{shape.hsm.regauss}: The ``re-Gaussianization'' method from Section~2.4 of \citet{2003MNRAS.343..459H} that has been extensively tested \citep{2005MNRAS.361.1287M, 2007MNRAS.376...13M}.
+  \item \code{shape.hsm.shapelet}: A ``shapelet'' method, implementing \citet{2003MNRAS.338...35R}.
+\end{itemize}
+Each of these algorithms provide:
+\begin{itemize}
+\item \code{<algorithm>.centroid}: The centroid.
+\item \code{<algorithm>.moments}: The uncorrected moments.
+\item \code{<algorithm>.psf}: Moments of the PSF at the source position.
+\item \code{<algorithm>.e1} and \code{<algorithm>.e2}: The ellipticity (\citealt{2002AJ....123..583B};
+  \code{nj}, \code{linear}, \code{regauss}) or estimated shear (\code{ksb}, \code{shapelet}).
+\item \code{<algorithm>.resolution}: Resolution factor (0 means unresolved, 1 means resolved).
+\item \code{<algorithm>.sigma}: Width.
+\end{itemize}
+
+\paragraph{shape.miyatake}
+A shapelet-based method described in \citet{2012arXiv1209.4643M}, which originates from
+\cite{2002AJ....123..583B} and \cite{Nakajima:2006}.  This measurement provides:
+\begin{itemize}
+\item \code{shape.miyatake.centroid}: The centroid.
+\item \code{shape.miyatake.psf}: Moments of the PSF at the source position.
+\item \code{shape.miyatake.e1} and \code{shape.miyatake.e2}: Ellipticity.
+\item \code{shape.miyatake.e1var}, \code{shape.miyatake.e2var} and \code{shape.miyatake.e1e2cov}: covariance matrix.
+\item \code{shape.miyatake.sigmagal} and \code{shape.miyatake.ordergal}: Sigma and order for galaxy GL. \tbd{What is GL?}
+\item \code{shape.miyatake.sn}: Signal-to-noise ratio.
+\item \code{shape.miyatake.status}: Status code.
+\end{itemize}
+
+\subsection{Fluxes}
+
+Each flux measurement algorithm provides a flux (\code{<algorithm>}) and corresponding error
+(\code{<algorithm>.err}).
+
+The zero-point of all fluxes is that of the PSF flux, so that fluxes of point sources by each algorithm should
+be equal (modulo the quality of the PSF model).  This is done by applying each measurement both to the source
+under consideration and the PSF model at that position; each flux measurement therefore has an additional
+column in the catalogs beyond those listed below, \code{<algorithm>.psffactor}, which is the flux from
+applying the algorithm to the PSF model.
+
+\paragraph{flux.psf}
+A PSF flux: the total flux of the source, weighted by the PSF.
+
+\paragraph{flux.sinc}
+The total flux of the source within a specified aperture.  This is calculated using sinc interpolation so the
+value is the exact amount within the aperture, rather than being scaled to a non-integral number of pixels
+after summing only pixels lying entirely within the aperture \citep{2013MNRAS.431.1275B}.
+
+\paragraph{flux.multiShapelet}
+Model fluxes are determined from fitting PSF-convolved elliptical models to the source.  We fit separately a
+pure exponential model, a pure de\ Vaucouleur model, and a linear combination of these two models (neither
+component is allowed to be negative, and the ellipses are fixed, so this is not quite a true bulge-disk
+decomposition).  This is similar to the SDSS ``cmodel'' fluxes \citep{SdssPhoto}, except that the profiles are
+constructed approximately from sums of Gaussians (8 for each profile; \citealt{HoggLangMoG}), and are
+convolved with a shapelet approximation of the PSF.
+
+\paragraph{flux.kron}
+Flux using an elliptical aperture defined by \citet{1980ApJS...43..305K}: the Kron radius is measured as the
+moment within an (elliptical) aperture of six times the (adaptive) moment, and the Kron flux is measured
+within an (elliptical) aperture of twice the Kron radius.  The sinc algorithm is used to measure the exact
+flux within this aperture.
+
+\paragraph{flux.petrosian}
+Flux using an (elliptical) aperture defined by \citet{1976ApJ...209L...1P} and, implemented in the same manner
+as described in Section~A3 of \citet{2002AJ....124.1810S}: the Petrosian radius is the radius, $r$, for which
+the surface brightness within an (elliptical) annulus from $0.8r$ to $1.25r$ is 0.2 times the mean surface
+brightness within $r$, and the Petrosian flux is measured within an (elliptical) aperture of twice the
+Petrosian radius.  \tbd{This measurement is not yet implemented in the pipeline, though prototype code exists
+  somewhere.}
+
+
+
 \subsection{Background Matching}
 \label{alg:backgroundMatching}
 
-We use the algorithm of \citealt{2011arXiv1111.6958H}, extended to two-dimensional data, which avoids the
-common problem of increased noise from over-subtracting the background; this technique will be important for
-reaching the maximum depth in the Deep and Ultradeep fields.
+This technique will be important for reaching the maximum depth in the Deep and Ultradeep fields.  We use the
+algorithm of \citealt{2011arXiv1111.6958H}, extended to two-dimensional data.
+
+The problem is that the common practise of subtracting the background from each input individually removes
+features on moderate scales (such as the outer haloes of galaxies, and Galactic cirrus) and can be unstable
+(especially when the features appear at the edge of a frame) causing increased noise.  Instead, we choose a
+reference exposure, and match the backgrounds of each of the other exposures to the reference.  This is done
+by subtracting the reference from each of the other exposures (which mostly removes astrophysical sources,
+especially the extended sources which normally contaminate background measurement) and fitting a background
+model to the difference between the backgrounds.  These models are then subtracted from the other inputs, so
+that all exposures have the same large-scale background as the reference exposure.  After coaddition, the
+stack will contain the extended astrophysical features we desire at high signal-to-noise, and the background
+can be carefully removed over multiple patches at once.
+
+The subtracted image also provides an opportunity to identify sharp features such as optical ghosts, glints
+and other contaminants that can be masked.
 
 \subsection{PSF}
+
+We run separate algorithms to select candidate stars and determine the point-spread function (PSF, the light
+distribution for a point source, a critical ingredient to understanding the data and measuring accurate
+shapes).  Both the star selector and PSF determiner algorithms are pluggable, so that different algorithms can
+be run as desired for different analysis needs.
+
+The ``second-moment'' star selector, for example, builds a histogram of the X and Y second moments of flux,
+searches for a peak, and selects sources in the peak as point source candidates.  The ``catalog'' star
+selector, in contrast, uses an external catalog of point sources and uses astrometric matching to select point
+source candidates.  The ``objectSize'' star selector (our current favourite, as of 2013 August) identifies
+point source candidates from the cluster of sources with similar sizes regardless of magnitude.  When
+selecting point source candidates by size (i.e., for the ``second-moment'' and ``objectSize'' algorithms), the
+sizes are first corrected by the known optical distortion of the camera.
+
+The ``principle-components'' PSF (pcaPsf) determiner, performs a singular value decomposition (also known as a
+principal components analysis, or PCA) on the point-source candidates in pixel space to produce a set of
+eigen-images.  From a subset of the dominant eigen-images, we construct polynomial interpolants for their
+relative weights.  This produces a spatially-varying PSF model that captures the most important changes in the
+PSF over the CCD.
+
+We are currently (August 2013) investigating the use of other PSF models, including PSFEx
+\citep{2011ASPC..442..435B}.
+
+
 \subsection{CoaddPsf}
 \label{alg:coaddPsf}
 
@@ -773,16 +960,87 @@ calibration.
 \subsection{PSF matching}
 \label{alg:psfMatching}
 
-PSF matching is used to match the PSF of one image to another.  The images with matched PSFs can be subtracted
-(to find transients) or coadded (to produce a stack with a continuous PSF).  We use the algorithm of
-\citet{1998ApJ...503..325A}.
+PSF matching allows us to match the PSF of an input image to that of a target model or target image.  The
+images with matched PSFs can be subtracted (to find transients) or coadded (to produce a stack with a PSF that
+varies in a continuous manner over the image).  We use the algorithm of \citet{1998ApJ...503..325A} and
+\citet{2000A&AS..144..363A}.  We have the option of using the traditional \citet{1998ApJ...503..325A}
+Gaussian/polynomial basis functions, or regularised delta-function basis functions
+\citep{2012MNRAS.425.1341B}.
+
 
 \subsection{Deblending}
 \label{alg:deblender}
+
+At the depths probed by HSC images, many of the sources are superimposed on each other on the sky
+(``blended''), which makes detecting and measuring such sources difficult.  Often this blending is not severe,
+but the $5\sigma$ contours overlap (and therefore merge together) slightly.  In other cases, distinct objects
+will be superimposed directly on more extended objects (e.g., a star on a resolved galaxy).  In order to
+disentangle the multiple objects, we employ a ``deblender'' based on the experience of SDSS
+\citep{2005ASPC..338..151L}.
+
+The deblender assumes that discrete sources generally have twofold
+rotational symmetry.  When one side of a source is blended, we can
+recover its appearance by examining the symmetric side.  The deblender
+begins by building these symmetric templates for each source.  Next,
+the flux in each pixel is split among the blended source in proportion
+to their templates.  The deblender produces ``postage stamps'' of each
+source in a blended group, so that the measurement algorithms (fluxes,
+galaxy shapes, etc) need not know that the source was blended.
+
+This deblending algorithm works well in practise for moderately
+crowded fields (as demonstrated by SDSS).
+
+The deblender (\S\ref{alg:deblender}) sets the following flags based on its interpretation of the source:
+\begin{itemize}
+\item \code{deblend.deblended-as-psf} is set if the deblender considered the source as a PSF.
+\item \code{deblend.too-many-peaks} is set if the deblender attempted to divide the source beyond a limit;
+  only the brightest peaks were deblended.
+\item \code{deblend.failed} is set if deblending failed on this source.
+\end{itemize}
+
+And the following values are set:
+\begin{itemize}
+\item \code{parent}: if non-zero, the \code{id} of the source from which this source was deblended.
+\item \code{deblend.nchild}: the number of children this source was deblended into.
+\item \code{deblend.psf-center}: the centroid of the PSF used, if \code{deblended-as-psf}.
+\item \code{deblend.psf-flux}: the flux of the PSF used, if \code{deblended-as-psf}.
+\end{itemize}
+
 \subsection{Star/galaxy separation}
+
+\subsection{Cosmic ray identification}
+
+We use the same algorithm as in SDSS to identify cosmic-rays by their morphology (see Section 4.3 of
+\citealt{SdssPhoto}).  We have found this works well on the Hamamatsu thick CCDs in Suprime-Cam.
+
+\subsection{Fringe subtraction}
+
+The Suprime-Cam data shows mild fringing in the $y$-band.  We construct fringes\footnote{This code fell out a
+  little while ago, but it is easy to revive it.} by combining with rejection many night-time science
+exposures.  To apply, the mean values are measured in a large number (e.g., 30,000) of randomly positioned
+small regions (e.g., 10 pixels square), both on the fringe frame and the science frame, from which the relative
+scaling of the fringe frame may be determined (with careful clipping to discard regions affected by
+astrophysical sources).  The scaled fringe frame is then subtracted from the science frame.
+
+\subsection{Background models}
+
+A smooth background is estimated and removed from the image.  We begin by measuring the background level in
+cells (typically 256 or 512 pixels square) using (by default) a clipped mean, and ignoring pixels that are
+part of detected sources.  We then construct an interpolating spline (Akima spline, by default) to estimate
+the background level in each pixel.
+
+\subsection{Warping}
+
+In warping an image from the detector frame to the sky frame, we apply a resampling kernel.  The kernel is set
+according to the sub-pixel position on the input image of the centre of the corresponding output pixel.  The
+code supports using Lanczos (of configurable order), bilinear or nearest-neighbour kernels; we use a 3rd-order
+Lanczos (with $10^6$ cache realisations), as a compromise between the infinite Sinc function and the need for
+speed.
+
 
 \section{External Interfaces}
 \label{sec:interfaces}
+\tbd{Koike-san to provide.}
 \subsection{Database}
 \subsection{Postage Stamps}
 \subsection{Copying}
@@ -796,13 +1054,5 @@ PSF matching is used to match the PSF of one image to another.  The images with 
 
 \bibliographystyle{}
 \bibliography{pipeline/pipeline}
-
-\begin{todo}
-\clearpage
-\section{TODO}
-\begin{itemize}
-\item Nothing yet.
-\end{itemize}
-\end{todo}
 
 \end{document}
