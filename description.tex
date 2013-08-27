@@ -22,7 +22,7 @@
 \def\Lo               {\hbox{$L_{\odot}$}}
 \def\comm#1           {{\tt (COMMENT: #1)}}
 \def\kms   {\hbox{km s$^{-1}$}}
-\def\email#1{\href{mailto:#1}{\tt #1}}
+\def\email#1{\href{mailto:#1}{\nolinkurl{#1}}}
 
 \usepackage[usenames]{color}
 \newcommand{\G}[1]{{\color{red} #1}}
@@ -90,7 +90,7 @@
 
 \section{Introduction}
 
-This document describes the Hyper Suprime-Cam Survey Pipeline, which will be used to process the survey
+This document describes the Hyper Suprime-Cam (HSC) Survey Pipeline, which will be used to process the survey
 observations and deliver data products with a consistent high quality to the collaboration, and ultimately to
 the world, for the realisation of the survey science goals.
 
@@ -100,7 +100,7 @@ the world, for the realisation of the survey science goals.
 %%% Stolen from the SSP proposal, with some edits
 %%%
 
-Hyper Suprime-Cam takes advantage of the full accessible field of view of the Subaru telescope (1.5~deg$^2$
+HSC takes advantage of the full accessible field of view of the Subaru telescope (1.5~deg$^2$
 diameter).  The focal plane is paved with 104 Hamamatsu Deep Depletion science CCDs (plus another 8 guiding
 and wavefront monitoring CCDs), each 2k\x 4k. These chips, which are three-side buttable and each have four
 independent readout amplifiers, are currently installed in Suprime-Cam, which has demonstrated their excellent
@@ -110,7 +110,7 @@ corresponding to $0.16$~arcsec at the focal plane. At this resolution, the image
 the best seeing.  Ray-tracing of the optics has shown that ghosting is minimal, with the worst ghost at an
 illuminance (fractional light in a PSF aperture) of $\sim 5 \times 10^{-8}$.
 
-Details of the instrument are summarized in the Hyper Suprime-Cam
+Details of the instrument are summarized in the HSC
 Design Review
 Booklet\footnote{\url{http://anela.mtk.nao.ac.jp/hypersuprime/presentation/hscreview20090227final_combined.pdf}}. The
 official HSC
@@ -153,9 +153,13 @@ filters in the Ultradeep layer will search for Lyman-$\alpha$
 emitters at $z = 5.7$, 6.6, and 7.3 at the very faint end of the
 luminosity function.
 
+More information about the HSC Survey is available from the Strategic Survey Program
+proposal\footnote{\url{http://hscsurvey.pbworks.com/Draft-Strategic-Survey-Proposal}} and the HSC Survey White
+Paper\footnote{\url{http://hscsurvey.pbworks.com/HSC_Science_White_Paper}}.
+
 \subsection{This document}
 
-This document provides a reference to the HSC Pipeline which will be
+This document provides a reference to the HSC Pipeline, which will be
 used to process the HSC Survey observations, producing the necessary
 data to achieve the scientific goals of the survey.  It is
 especially intended for HSC Survey scientists to evaluate the pipeline
@@ -213,7 +217,8 @@ installed) and more recently with HSC commissioning data has been an integral pa
 The pipeline consists of multiple stages in order to produce the variety of data products required to meet the
 various survey science goals.  The stages share a great deal of framework code, but differ by their inputs,
 parallelism scheme (CCD vs exposure vs sky patch) and outputs.  Different science applications will depend on
-different pipeline stages, according to the desired measurements, depth and accuracy.
+different pipeline stages, according to the desired measurements, depth and accuracy.  Understanding the data
+flow is key to understanding matching science goals with the various measurements provided by the pipeline.
 
 \begin{figure}[!htbp]
     \centering
@@ -1047,8 +1052,29 @@ speed.
 
 \section{Help and Support}
 \label{sec:support}
+
+The pipeline team is committed to supporting the collaboration in their understanding of the pipeline and the
+use of its products.  To this end, there are two principal means of interacting with the pipeline team.  We
+encourage collaboration members to use these means, rather than asking pipeline team members individually,
+since they allow us to build up a body of support documentation that will be of use to the entire
+collaboration.  In contrast, questions asked and answered privately do not benefit anyone else.
+
 \subsection{Forum}
+
+A web-based question-answer forum, similar to that of the popular coding forum \url{stackoverflow.com} has
+been set up at \url{http://hsca.ipmu.jp:88/questions/}.  Collaboration members are encouraged to set up an
+account and ask (and answer!) questions and vote on questions and answers.  Members of the pipeline team
+receive e-mail notifications of postings, so that questions from collaboration members can be answered
+promptly.  When you receive a suitable answer to your question, please ``accept'' it (by clicking on the check
+mark to the left of the answer), so that everyone else can identify the correct solution.
+
 \subsection{Mailing list}
+
+The pipeline team (and interested bystanders) can be reached by e-mail to
+\email{hsc_software@astro.princeton.edu}.  Collaboration members are welcome to sign up at
+\url{http://jeeves.astro.princeton.edu/mailman/listinfo/hsc_software}.  The list archive is publicly
+accessible, at \url{http://jeeves.astro.princeton.edu/pipermail/hsc_software/}
+
 
 \clearpage
 
