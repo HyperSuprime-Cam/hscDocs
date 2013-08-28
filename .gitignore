@@ -3,5 +3,7 @@
 *.out
 *.cut
 *.toc
+*.bbl
+*.blg
 
 description.pdf

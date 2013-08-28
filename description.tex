@@ -25,6 +25,30 @@
 \def\kms   {\hbox{km s$^{-1}$}}
 \def\email#1{\href{mailto:#1}{\nolinkurl{#1}}}
 
+% Journal definitions for bibtex:
+\def\jnl#1{{\it#1\/}}
+\def\apj{\jnl{ApJ}}
+\def\apjl{\jnl{ApJL}}
+\def\apjs{\jnl{ApJS}}
+\def\aj{\jnl{AJ}}
+\def\apss{\jnl{Ap\&SS}}
+\def\mnras{\jnl{MNRAS}}
+\def\aap{\jnl{A\&A}}
+\def\aaps{\jnl{A\&AS}}
+\def\nat{\jnl{Nature}}
+\def\physrep{\jnl{Phys. Rep.}}
+\def\araa{\jnl{ARAA}}
+\def\prd{\jnl{Phys.\ Rev.\ D}}
+\def\pasp{\jnl{PASP}}
+\def\pasj{\jnl{PASJ}}
+\def\pasa{\jnl{PASA}}
+\def\aaps{\jnl{A\&AS}}
+\def\an{\jnl{AN}}
+\def\jcap{\jnl{JCAP}}
+\def\memsai{\jnl{Mem. Soc. Astron. Ital.}}
+\def\icarus{\jnl{Icarus}}
+\def\planss{\jnl{Planet.~Space~Sci.}}
+
 \usepackage[usenames]{color}
 \newcommand{\G}[1]{{\color{red} #1}}
 \newcommand{\B}[1]{{#1}}
@@ -107,7 +131,7 @@ the world, for the realization of the survey science goals.
 
 HSC takes advantage of the full accessible field of view of the Subaru telescope (1.5~deg diameter).  The
 focal plane is paved with 104 Hamamatsu Deep Depletion science CCDs (plus another 12 guiding and focus CCDs),
-each 2k\x 4k. These chips each have four independent readout amplifiers, and examples are currently installed
+each 2k\x 4k, with four independent readout amplifiers.  The same CCDs are currently installed
 in Suprime-Cam, which has demonstrated their excellent characteristics: low read noise, excellent charge
 transfer efficiency, few cosmetic defects, and most importantly, high quantum efficiency from 4000\AA\ to
 10,000\AA.  The CCD pixels are $15\mu$m on a side, corresponding to $0.168$~arcsec at the focal plane. At this
@@ -162,7 +186,7 @@ Paper\footnote{\url{http://hscsurvey.pbworks.com/HSC_Science_White_Paper}}.
 
 \subsection{This document}
 
-This document provides a reference to the HSC Pipeline, which will be
+This document provides a reference to the HSC Survey Pipeline, which will be
 used to process the HSC Survey observations, producing the necessary
 data to achieve the scientific goals of the survey.  It is
 especially intended for HSC Survey scientists to evaluate the pipeline
@@ -172,7 +196,7 @@ In section \ref{sec:pipeline}, we outline the pipeline construction and operatio
 through the various stages of the pipeline, to the ultimate releases to the collaboration.  Next, in section
 \ref{sec:products}, we outline the various products that will compose the data releases, with particular
 attention to the measurements that comprise the catalog in the database.  Section \ref{sec:algorithms} gives
-details as to the algorithms used to make these measurements, and section \ref{sec:interfaces} describes how
+details as to the algorithms used to make these measurements, and section \ref{sec:access} describes how
 the data will be made available.  Finally, section \ref{sec:support} contains pointers on resources available
 for supporting users of these data.
 
@@ -185,7 +209,8 @@ for supporting users of these data.
 %%% Stolen from the SSP proposal
 %%%
 
-To construct the HSC pipeline, we use the LSST pipeline software as the foundation.  This is a synergistic
+To construct the HSC pipeline, we use the LSST pipeline software\footnote{\url{http://dev.lsstcorp.org}}
+as the foundation.  This is a synergistic
 effort, since the pipelines have similar functionality.  By this scheme, the HSC pipeline has features and a
 maturity it would not otherwise have at this stage, and because our pipeline is based on code with a larger
 market share than ours could ever have alone, we can have greater confidence in the results.  In return, LSST
@@ -204,13 +229,13 @@ language.
 Particular attention has been paid, in large part because of our contributions, to making the LSST pipeline
 extensible and configurable.  New camera interfaces and new measurement algorithms can be added without the
 need to redesign or even rebuild the software.  The modular design also allows for algorithms to be
-substituted at run-time, so that the pipeline can adapt to the data being processed.  These features, besides
+substituted at run-time, so that the pipeline can be adapted to the data being processed.
+These features, besides
 being useful for our adaptation of the LSST pipeline to HSC, mean that we could use our own pipeline to
 process data from other telescopes and cameras for comparison with the results of other pipelines (e.g., we
 can not only compare the results of the HSC Survey + HSC pipeline with DECam + DES pipeline, but also with
 DECam + HSC pipeline, for better diagnosis of any problems).  Interface packages have been written for LSST
-simulated images (``ImSim''), CFHT MegaCam, Subaru's Suprime-Cam, SDSS, the Space Surveillance Telescope
-(SST), DECam, and HSC simulated images.
+simulated images (``ImSim''), CFHT MegaCam, Subaru's Suprime-Cam and HSC, SDSS, and DECam.
 
 Testing with archival Suprime-Cam data (in particular, from after August 2008 when the Hamamatsu CCDs were
 installed) and more recently with HSC commissioning data has been an integral part of the pipeline development.
@@ -221,7 +246,7 @@ The pipeline consists of multiple stages in order to produce the variety of data
 various survey science goals.  The stages share a great deal of framework code, but differ by their inputs,
 parallelism scheme (CCD vs exposure vs sky patch) and outputs.  Different science applications will depend on
 different pipeline stages, according to the desired measurements, depth and accuracy.  Understanding the data
-flow is key to understanding matching science goals with the various measurements provided by the pipeline.
+flow is key to matching science goals with the various measurements provided by the pipeline.
 
 \begin{figure}[!htbp]
     \centering
@@ -231,62 +256,63 @@ flow is key to understanding matching science goals with the various measurement
 
 Figure~\ref{fig:flow} shows a schematic representation of the HSC pipeline.  Input data on the left is fed
 into the pipeline stages (light blue, center) to produce the outputs on the right.  The first three stages
-(visit processing, mosaic solution, stacking) are executed in sequence, after which all the remaining stages
+(visit processing, mosaic solution, stacking) are executed (red arrows) in sequence,
+after which all the remaining stages
 can be run in parallel.  The stages are explained in more detail below.
 
 \subsubsection{Visit processing}
 
-Visit processing removes the instrumental signature (overscan, bias, dark, flat, bad pixels, amplifier
-crosstalk) from each CCD and flags suspected cosmic-rays.  The result is a clean image for which the intensity
+Visit processing removes the instrumental signature (overscan, bias, dark, flat, fringe (\S\ref{alg:fringe}),
+bad pixels, amplifier
+crosstalk) from each CCD and flags suspected cosmic-rays (\S\ref{alg:cosmicray}).  The result is a clean
+image for which the intensity
 is a linear function of astrophysical flux\footnote{Excepting flat-field inaccuracies, and intrinsic pixel
-  shape non-linearities.}  The background is estimated and removed, then bright sources on the image are used
-to measure the PSF and the astrometric solution and photometric zero-point, before a final detection and
-measurement pass.  From the individual CCD measurements, we determine and apply an exposure-wide astrometric
+  shape non-linearities.}.  The background is estimated (\S\ref{alg:background}) and removed, then bright
+sources on the image are used
+to measure the PSF (\S\ref{alg:psf}), the astrometric solution and photometric zero-point, before a final
+detection and
+measurement pass covering all sources.  From the individual CCD measurements, we determine and apply an
+exposure-wide astrometric
 solution and photometric zero-point.
-
-The outputs are:
-\begin{itemize}
-\item Image
-\item PSF
-\item Background
-\item Sources
-\item Astrometric solution
-\item Photometric zero point
-\end{itemize}
 
 \subsubsection{Mosaic solution}
 
 Once several exposures overlapping the same part of sky are available, we can determine a mosaic solution.
 This involves solving for consistent astrometric solutions and photometric zero-points for the set of
 exposures, using sources in common to multiple exposures, in the same manner as \citet{2008ApJ...674.1217P}.
-This allows increased accuracy and precision relative to the visit processing, by allowing use of stars
+This allows increased accuracy and precision relative to the visit processing, by allowing use of the many stars
 fainter than in our original reference catalog (e.g., SDSS), and incorporating spatial information unavailable
-from single exposures.
+from single exposures.  For further details on the algorithm and functional form, see \S\ref{alg:mosaic}.
 
 
 \subsubsection{Stacking}
 \label{flow:stack}
 
 Stacking involves the coaddition of multiple images to produce a single, deeper image.  We apply the results
-of mosaic solution to the input images, warp them to a common coordinate system (``sky map'';
-\S\ref{alg:skymap}) and stack the pixels.  Then we will detect and measure sources on the stack.  Our code
-includes a couple of recent innovations to increase the quality of the stacks.
+of the mosaic solution to the input images, warp (\S\ref{alg:warp}) them to a common coordinate system
+(``sky map'';
+\S\ref{alg:skymap}) and stack the pixels.  Then we detect and measure sources on the stack.  Our code
+includes a couple of recent innovations to increase the quality of the stacks: background maching and
+CoaddPsf.
 
 Stacks are normally produced by first subtracting the background, but determining the background from
-individual visits separately is problematic (because different choices can be made in each), commonly observed
+individual visits separately is problematic (because different choices can be made in each, especially at
+the edge of a CCD; and because extended, faint astrophysical flux is misinterpreted as background), commonly
+manifesting
 as dark rings around bright stars and galaxies.  Instead, we perform ``background matching''
 (\S\ref{alg:backgroundMatching}) to produce a stack with a high signal-to-noise realization of the background
-in a single reference exposure.  This background can then be measured over wide scales and subtracted with a
+in a single reference exposure.  This background can then be measured over large scales and subtracted with a
 high degree of accuracy.
 
 It must always be remembered that a stack is a computational convenience, rather than a perfectly accurate
-representation of the sky.  Indeed, if the seeing is not constant with time it becomes impossible to produce a
+representation of the sky.  Indeed, if the seeing is not constant it becomes impossible to produce a
 stack with a PSF varying in a continuous fashion over the field, unless we deliberately degrade the data by
 convolving the inputs to a common PSF.  In order to attempt to deal with the discontinuous PSF, we use a
 ``CoaddPsf'' (\S\ref{alg:coaddPsf}), which is a sum of the PSFs of the input images at each point of interest.
 
 Unfortunately, degrading the PSF is the only way of accurately measuring the colors of galaxies (e.g., for
-photometric redshifts) from stacks in the presence of color gradients and seeing changes.  For this reason, we
+photometric redshifts) from stacks in the presence of color gradients, seeing changes and imperfect galaxy
+models.  For this reason, we
 will produce ``PSF-matched stacks'' for the purpose of measuring galaxy colors.  But because these data have
 been deliberately degraded, they are not the deepest available, so we will also produce ``deep stacks'' by
 coadding without PSF matching.
@@ -294,37 +320,34 @@ coadding without PSF matching.
 Despite the intrinsic limitations of stacks, the measurements from this pipeline stage will be useful for
 applications where extreme accuracy isn't required, e.g., searching for sources with extreme spectral features
 such as high-$z$ quasars.  The deep stacks will also be used to identify discrete astrophysical objects for
-the following stages that require known object positions.
+the following stages that require known object positions and reference apertures.
 
 \subsubsection{Forced Stack Measurement}
 
-The deep stack catalog of a nominated band ($i$-band) will be used as a reference to measure sources in
+The deep stack catalog of a nominated band (e.g., $i$-band) will be used as a reference to measure sources in
 PSF-matched stacks, with the same centroids and apertures.  This provides matched-aperture galaxy colors,
-e.g., for photometric redshifts.  Because of the limitations of the stacks, these are not the most accurate
+e.g., for photometric redshifts.  Because of the limitations of the stacks, these may not be the most accurate
 measurements available, but they are more simple and will be available earlier than the full MultiFit
-measurements.
+(\S\ref{flow:multifit}) measurements.
+
+\subsubsection{Forced Visit Measurement}
+
+The deep stack catalog of a nominated band (e.g., $i$-band) will be used as a reference to measure the sources in
+every available visit.  This produces time-resolved positions (for proper motions and parallax) and fluxes
+(for light curves).  These results may be preferred over photometry from the Differences stage for some
+science goals, if the variable sources are not confused with other sources (e.g., variable stars and AGN;
+not for SNe superposed on a host galaxy).
 
 \subsubsection{MultiFit}
-
-%%%
-%%% Stolen from LSST Data Products document, edited
-%%%
-
-The deep stack catalog of a nominated band ($i$-band) will be used as a reference to measure the sources in
-multiple bands.  However, rather than coadding a set of images and measuring object characteristics on the
-coadd, MultiFit fits a PSF-convolved model simultaneously to multiple independent observations of an
-object. This reduces systematic errors, improves the overall signal-to-noise, and allows for fitting of
-time-dependent quantities degenerate with shape on the coadds (for example, the proper motion). The models we
-plan to fit will not allow for flux variability.  We expect these will be the best possible measurements of
-the position, shape and flux of objects of constant flux.
+\label{flow:multifit}
 
 %%%
 %%% Contribution from Jim Bosch
 %%%
-For some measurements - particularly shape measurement for weak
-lensing - measurement on a coadd image may not provide the necessary
+For some measurements --- particularly shape measurement for weak
+lensing --- measurement on a coadd image may not provide the necessary
 precision and control of systematics.  To perform these measurements,
-we will use what we call a ``multifit'' approach, in which a
+we will use what we call a ``MultiFit'' approach, in which a
 parametrized model for each astronomical object is fit simultaneously
 to all of the data in which that object appears.  Rather than
 transform and combine the data, we instead transform the model to the
@@ -348,9 +371,9 @@ cannot usually do not properly account for the PSF).  While it may be
 possible to construct an optimal coadd that would also be
 theoretically optimal, we expect that the difficulty in creating such
 a coadd (i.e. perfectly tracking the covariances between pixels
-introduced by resampling to a common pixel grid) would be prohibitive
+introduced by resampling to a common pixel grid) would be prohibitively
 complex.  On the other hand, for many measurements a non-optimal coadd
-of the sort described in Section~\ref{flow:stack} may be practically
+(as described in \S\ref{flow:stack}) may be practically
 sufficient, in the sense that the improvement produced by a
 multifit-based measurement of the same would be negligible.  In these
 cases, the coadd measurement is likely to be far more efficient
@@ -369,15 +392,8 @@ PSF-matched coadds), and will constitute one of many appproaches to
 shape measurement for weak lensing.  It is also unclear yet whether
 these fits will be standard maximum-likelihood fits or a Bayesian
 approach that involves sampling from the full likelihood surface
-\cite{BA2013,Miller2013}.
+\citep{BA2013,Miller2013}.
 
-
-
-\subsubsection{Forced Visit Measurement}
-
-The deep stack catalog of a nominated band ($i$-band) will be used as a reference to measure the sources in
-every available visit.  This produces time-resolved positions (for proper motions and parallax) and fluxes
-(for light curves).
 
 
 \subsubsection{Differencing}
@@ -398,7 +414,8 @@ differencing stage in advance of the second year of operations for the supernova
 Data releases are the culmination of the pipeline development and operations, whereby the results are delivered
 to the collaboration for science use.
 
-\tbd{The following need discussion among the collaboration, and approval by the executive board.}
+\tbd{The following suggested release types need discussion among the collaboration, and approval by the
+  executive board.}
 
 \subsubsection{Daily transients}
 
@@ -417,27 +434,27 @@ and manpower and processing power.}
 
 Aware of the great interest in the HSC survey observations by the collaboration members, and desiring to
 encourage independent quality analyses, we will endeavor to produce a preview of the processed data (through
-all the pipeline stages) to the collaboration as soon as possible after the observing run.  {\bf It should
+all the pipeline stages) to the collaboration as soon as possible after each observing run.  {\bf It should
 be understood that these releases will be preliminary, and made on a best-efforts basis.}  The released data
-will be in the form of FITS images for bulk download and a database accessed in the usual manner.
+will be in the form of FITS images for bulk download and a database accessed in the usual manner
+(\S\ref{sec:database}).
 
-Once the survey is sufficiently progressed that a single month's data is not as interesting, we may not post
-the preview, though reducing the data promptly is necessary to inform the observing plan for the following run
-of unsuitable exposures in the previous run.
+Once the survey is sufficiently progressed that a single month's data is not as interesting, this type of
+release may be suspended.
 
-\tbd{This needs further thought and discussion.}
+\tbd{This needs further thought and discussion as to its necessity and practicality.}
 
 \subsubsection{Semi-annual}
 
-The semi-annual releases are the main goal of the pipeline team.  As part of each, it is our intention to
+The semi-annual releases are the main goal of the pipeline operations.  As part of each, it is our intention to
 re-reduce all data from the survey with the best available code and calibrations, delivering all the data
 products (\S\ref{sec:products}) to the survey collaboration.  Each semi-annual release will be formally
 announced on the HSC mailing list\footnote{\email{hsc@astro.princeton.edu}}, and accompanied by a set of
 release notes identifying features and known bugs\footnote{We guarantee that no release will be free of bugs.}
-in the release.  The released data may be accessed through the methods described in \S\ref{sec:interfaces}.
+in the release.  The released data may be accessed through the methods described in \S\ref{sec:access}.
 
 
-\subsubsection{World public}
+\subsubsection{World}
 
 Pulbic world releases will consist of a previous semi-annual release to the collaboration, with password
 restrictions lifted.
@@ -452,11 +469,11 @@ Here we describe the various data products produced by the pipeline.
 Images from the pipeline shall be multi-extension FITS (MEF) files, containing the image data, mask plane and
 variance plane.  The World Coordinate System (WCS) in the headers shall use the \code{TAN-SIP} convention
 \footnote{\url{http://fits.gsfc.nasa.gov/registry/sip.html}}, except for those corresponding to a tract/patch
-(\S\ref{alg:skymap}) which shall use the standard \code{TAN} projection.  The FITS files may also Contain
+(\S\ref{alg:skymap}) which shall use the standard \code{TAN} projection.  The FITS files may also contain
 further extensions (e.g., for the PSF).  We encourage the use of our software in reading and manipulating the
 files.
 
-The mask planes are listed in the mask HDU header (with prefixes \code{MP}).  The symbolic names correspond
+The mask planes are listed in the mask HDU header (with prefixes \code{MP_}).  The symbolic names correspond
 to:
 \begin{itemize}
 \item \code{BAD}: the detector pixel is believed to be bad (e.g., non-functional, un-calibratable, or
@@ -478,14 +495,14 @@ to:
 The images are provided principally for the sake of verifying candidates, quality analysis, and to enable
 extensive analyses not supported by the pipeline.  If you desire the images in order to generate your own
 catalogs (e.g, with SExtractor), please consider using the pipeline catalogs instead, as this will benefit
-everybody (e.g., you will have frequent updates with the latest code, and any problems you find can be fed
-back into the pipeline).  If the particular measurement you desire to have is not available, please let us
-know so that we attempt to support it.
+everybody (e.g., you will have regular updates with the latest code, and any problems you find can be used to
+debug the pipeline).  If the particular measurement you desire to have is not available, please let us
+know so that we can attempt to support it.
 
 \subsubsection{Visits}
 
-The visit images shall be a single MEF for each CCD, which is background-subtracted and possesses a common
-astrometric solution and photometric zero point with the entire visit.  The MEFs shall also include PSF models
+The visit images shall be a single MEF for each CCD, which is background-subtracted with the mosaic solution
+(\S\ref{alg:mosaic}) applied.  The MEFs shall also include PSF models
 for each.  The background model is saved separately, and available if desired.
 
 \subsubsection{Stacks}
@@ -513,16 +530,21 @@ as the database (\S\ref{sec:database}) should contain all the same information.
 
 The following measurements will be made for all processing stages:
 \begin{itemize}
-\item SDSS centroid, with error estimate.
-\item Flux from PSF photometry, with error estimate.
-\item Flux from sinc photometry (7 pixel radius), with error estimate.
-\item Flux from multiple \tbd{elliptical} apertures (0.5, 0.75, 1.0, 1.5, 2, 3.0, 5.0 arcsec radii), with
-  error estimates.
-\item Kron flux, with error estimate.
-\item Petrosian flux, with error estimate.
-\item Gaussian model flux, with error estimate.
-\item Adaptive moments.
-\item Star/galaxy indicator.
+\item SDSS centroid (\code{centroid.sdss}; \S\ref{alg:centroid.sdss}), with error estimate
+  (\code{centroid.sdss.err}).
+\item Flux from PSF photometry (\code{flux.psf}; \S\ref{alg:flux.psf}), with error estimate
+  (\code{flux.psf.err}).
+\item Flux from sinc photometry (7 pixel radius; \code{flux.sinc}; \S\ref{alg:flux.sinc}), with error estimate
+  (\code{flux.sinc.err}).
+\item Flux from multiple \tbd{elliptical?} apertures (0.5, 0.75, 1.0, 1.5, 2, 3.0, 5.0 arcsec radii;
+  \code{flux.aperture}), with error estimates (\code{flux.aperture.err}).
+\item Kron flux (\code{flux.kron}; \S\ref{alg:flux.kron}), with error estimate (\code{flux.kron.err}).
+\item Petrosian flux (\code{flux.petrosian}; \S\ref{alg:flux.petrosian}), with error estimate
+  (\code{flux.petrosian.err}).
+\item Gaussian model flux (\code{flux.gaussian}; \S\ref{alg:flux.gaussian}), with error estimate
+  (\code{flux.gaussian.err}).
+\item SDSS adaptive moments (\code{shape.sdss}; \S\ref{alg:shape.sdss}).
+\item Star/galaxy indicator (\code{classification.extendedness}; \S\ref{alg:star-galaxy}).
 \end{itemize}
 
 \subsubsection{Visits}
@@ -535,21 +557,22 @@ Because we use a CoaddPsf (\S\ref{alg:coaddPsf}), the flags regarding the PSF wi
 
 In addition to the standard set, we will also measure:
 \begin{itemize}
-\item Shapes from the HSM regaussianization method.
-\item Flux from MultiShapelet algorithm, with error estimate.
-\item Shapes from MultiShapelet algorithm, with error estimate.
+\item Shapes from the HSM regaussianization method (\code{shape.hsm.regauss.*}; \S\ref{alg:shape.hsm}).
+\item Flux and shapes from the MultiShapelet algorithm (\code{multishapelet.*}; \S\ref{alg:multishapelet}).
 \end{itemize}
 
 \subsubsection{Forced Visit Measurements}
 
 We will perform the standard set of measurements, except that the Kron, Petrosian and Gaussian fluxes will be
-measured with the aperture defined from the reference frame.
+measured with apertures defined from the reference frame.
 
 \subsubsection{Forced Stack Measurements}
+\label{sec:forced-stack-measurements}
 
 In addition to the standard set, we will also measure:
 \begin{itemize}
-\item Flux from MultiShapelet algorithm, with error estimate.
+\item Fluxes from MultiShapelet algorithm (\code{multishapelet.exp.flux}, {multishapelet.dev.flux},
+  \code{multishapelet.combo.flux}; and associated errors).
 \end{itemize}
 
 The Kron, Petrosian, Gaussian and MultiShapelet fluxes will be measured with the aperture defined from the
@@ -557,17 +580,15 @@ reference frame.
 
 \subsubsection{MultiFit}
 
-In addition to the standard set, we will also measure:
-
+In addition to the standard set, we will also apply:
 \begin{itemize}
-\item Flux from MultiShapelet algorithm, with error estimate.
-\item Shapes from MultiShapelet algorithm, with error estimate.
+\item MultiShapelet algorithm \tbd{details TBD}.
 \end{itemize}
 
 %%%
 %%% Contribution from Jim Bosch
 %%%
-As noted in Section~\ref{sec:multifit-intro}, the output catalogs
+As noted in \S\ref{flow:multifit}, the output catalogs
 produced by multifit-based measurement algorithms will have the same
 form as those produced by coadd-based measurement algorithms.  In
 particular, there will not be any per-exposure information in the
@@ -575,14 +596,14 @@ multifit outputs, despite the fact that the measurements will fit the
 model to the original exposure-level data.
 
 However, it should be noted that the forced measurements discussed in
-Section~\ref{sec:forced-measurement-cats} could be performed either by
+\S\ref{sec:forced-stack-measurements} could be performed either by
 iterating over exposures and looking up the associated detections from
 the coadd (as has been described above) or by iterating over all coadd
 detections and fitting to the associated postage stamps from
 individual exposures (as is done with multifit).  Which of these
 approaches we actually take should be considered an implementation
 detail, and will not change the outputs described in
-Section~\ref{sec:forced-measurement-cats}.
+\S\ref{sec:forced-stack-measurements}.
 
 \subsubsection{Differences}
 
@@ -591,151 +612,143 @@ No additions over the standard set.
 \subsection{Database}
 \label{sec:database}
 
-The database tables of HSC data are separated into two types, one is for storing meta data 
-of image data like CCD and/or Coadd, and another is for objects catalog detected/measured 
-on these image data. After the production of the FITS files with the HSC pipeline, the 
-registration of image meta data/objects into database will be performed with python scripts 
-in hscDb package, which is included in the pipeline software distribution. The database engine 
-for the HSC data is PostgreSQL (version 9.2 or later is recommended), which is one of the most 
-popular RDBMS(Relational DataBase Management System) in Japan.  
+The database tables of HSC data are separated into two types: tables containing image metadata
+for CCDs or coads; and tables containing objects detected and measured
+on these images. After the production of the FITS files with the HSC pipeline, these will be
+ingested into the database.  The database engine
+for the HSC data is PostgreSQL (version 9.2 or later is recommended), which is one of the most
+popular RDBMS\footnote{Relational DataBase Management System} in Japan.
 
-\subsubsection{Brief summary of HSC database tables}
-The short descriptions for each tables are listed below.  The full schema is provided in \S\ref{sec:schema}.
+Each of the tables in the database is listed below, with a brief description.  The full schema is
+provided in \S\ref{sec:schema}.
 
-\begin{enumerate}
-\item Tables for Image Meta Data\\
-Meta data which will be injected into database tables are basically extracted from FITS header 
-in each image data and some additionals like celestial coordinates of 4-corners of image data 
-will be calculated based on these meta data.  
+\tbd{The database tables use a different vocabulary than in the rest of this document, e.g.:
+``frame'' = processed CCD from visit processing stage, ``mosaic'' = coadd from stack processing stage.
+One or the other needs to be updated.  Comments about which vocabulary is most helpful to science users
+is welcome.}
+
+\subsubsection{Tables for image metadata}
+
+Meta data which will be injected into database tables are basically extracted from FITS header
+in each image data and some additionals like celestial coordinates of 4-corners of image data
+will be calculated based on these meta data.
 
 \begin{itemize}
-\item Frame\\
-Table which contains meta data of reduced CCD images, which are processed by HSC pipeline's 
-reduceFrames.py/scProcessCcd.py (CORR*.fits). It includes filter names, date and time of 
-data taking, image quality information (like seeing), astrometric information, and photometric 
-information and so on. 
+\item \code{Frame}:
+metadata of reduced CCD images (visit processing stage), including filter names, time of exposure,
+image quality information (e.g., seeing), astrometric and photometric information, etc.
 
-\item Frame\_Mng\\
-Table for the reduced CCD image data management, in which location of the data, MD5, proposal ID, 
-and some other information required for data management are included. 
+\item \code{Frame_Mng}:
+reduced CCD image data management, including location of the data, MD5, proposal ID,
+and some other information required for data management.
 
-\item Frame\_Hpx11\\
-It stores order 11 HEALPix indeces which are used to cover the area occupied by the image. There are 
-multiple records for each CCD image.  
+\item \code{Frame_Hpx11}:
+stores order 11 HEALPix indices which are used to cover the area occupied by the image. There are
+multiple records for each CCD image.
 
-\item Exposure\\
-Table for storing the meta data of each exposure. The main components are coming from statistical 
-information like average/rms of seeing, photometric zero points and so on, measured on each CCD image.  
+\item \code{Exposure}:
+metadata of each exposure, generally derived from statistics (e.g., average/rms of seeing,
+photometric zero points, etc.) of reduced CCD image properties.
 
-\item Exposure\_Mng\\
-Table for the exposure meta data file management. 
+\item \code{Exposure_Mng}:
+exposure metadata file management.
 
-\item Mosaic\\
-Table which contains meta data of coadd images, which are processed by HSC pipeline's 
-processCoadd.py (calexp*.fits). 
+\item \code{Mosaic}:
+metadata of coadd images (stack processing stage).
 
-\item Mosaic\_Mng\\
-Table for the coadd image data management, in which location of the data, MD5, proposal ID, 
-and some other information required for data management are included. 
+\item \code{Mosaic_Mng}:
+coadd image data management, including the location of the data, MD5, proposal ID,
+and some other information required for data management.
 
-\item Mosaic\_Hpx11\\
-It stores order 11 HEALPix indeces which are used to cover the area occupied by the coadd imagea. 
-There are multiple records for each coadd image.  
-
+\item \code{Mosaic_Hpx11}:
+stores order 11 HEALPix indices which are used to cover the area occupied by the coadd image.
+There are multiple records for each coadd image.
 \end{itemize}
 
-\item Tables for Object Catalog\\
-The tables for object catalog contains most of all information like measured positions, fluxes, shapes and 
-flags on all measurements, except for the footprint information for the measured objects, which are stored 
-in FITS BINTABLE files as the outputs of HSC pipeline.   
+\subsubsection{Tables for Object Catalog}
+The tables for object catalog contain measured source positions, fluxes, shapes and flags.
 
 \begin{itemize}
+\item \code{Frame_Matchlist}:
+contains matched objects in astrometric/photometric reference catalog (e.g., SDSS-DR8) on the reduced
+CCD images.
 
-\item Frame\_Matchlist\\
-The table contains the object per record, which have the matched objects in astrometric/pgotometric 
-reference catalog like SDSS DR8 on the reduced CCD images. They are coming from ML*.fits. 
+\item \code{Frame_MatchCoordPhoto}:
+contains the derived information like magnitudes and celestial coordinates of matchlist
+objects, which are in \code{Frame_Matchlist} table.
 
-\item Frame\_MatchCoordPhoto\\
-The table contains the derived information like magnitudes and celestial coordinates of matchlist 
-objects, which are in Frame\_Matchlist table. 
+\item \code{Frame_SourceList}:
+contains objects which are detected/measured on the reduced CCD images (visit processing stage).
 
-\item Frame\_SourceList\\
-It contains all objects per record, which are detected/measured on the reduced CCD images. They 
-are coming from SRC*.fits. 
+\item \code{Frame_SourceCoordPhoto}:
+contains the derived information like magnitudes and celestial coordinates of sourcelist
+objects, which are in \code{Frame_Sourcelist} table.
 
-\item Frame\_SourceCoordPhoto\\
-The table contains the derived information like magnitudes and celestial coordinates of sourcelist 
-objects, which are in Frame\_Sourcelist table. 
+\item \code{Frame_Forcelist}:
+contains measurements from forced CCD measurement.
 
-\item Frame\_Forcelist\\
-It contains all objects per record, which are measured on the reduced CCD images in forced photometry. 
-They are coming from FORCE*.fits produced by forcedPhotCcd.py. 
+\item \code{Frame_ForceCoordPhoto}:
+contains the derived information like magnitudes and celestial coordinates of forcelist 
+objects, which are in \code{Frame_Forcelist} table.
 
-\item Frame\_ForceCoordPhoto\\
-The table contains the derived information like magnitudes and celestial coordinates of forcelist 
-objects, which are in Frame\_Forcelist table. 
+\item \code{Mosaic_Matchlist}:
+contains the matched objects in astrometric/photometric
+reference catalog (e.g., SDSS-DR8) on the coadd images.
+It is currently not implemented.
 
-\item Mosaic\_Matchlist\\
-The table contains the object per record, which have the matched objects in astrometric/pgotometric 
-reference catalog like SDSS DR8 on the coadd images. They are supposed to come from srcmatch*.fits. 
-It is currently not implemented. 
+\item \code{Mosaic_MatchCoordPhoto}:
+contains the derived information like magnitudes and celestial coordinates of matchlist
+objects, which are in \code{Mosaic_Matchlist} table. It is currently not implemented.
 
-\item Mosaic\_MatchCoordPhoto\\
-The table contains the derived information like magnitudes and celestial coordinates of matchlist 
-objects, which are in Mosaic\_Matchlist table. It is currently not implemented.  
+\item \code{Mosaic_SourceList}:
+contains measurements from the coadd images (stack processing stage).
 
-\item Mosaic\_SourceList\\
-It contains all objects per record, which are detected/measured on the coadd images. They 
-are coming from src*.fits, which come from processCoadd.py. 
+\item \code{Mosaic_SourceCoordPhoto}:
+contains the derived information like magnitudes and celestial coordinates of sourcelist
+objects, which are in \code{Mosaic_Sourcelist} table.
 
-\item Mosaic\_SourceCoordPhoto\\
-The table contains the derived information like magnitudes and celestial coordinates of sourcelist 
-objects, which are in Mosaic\_Sourcelist table. 
+\item \code{Mosaic_Forcelist}:
+contains measurements from forced stack measurement.
 
-\item Mosaic\_Forcelist\\
-It contains all objects per record, which are measured on the coadd images in forced photometry. 
-They are coming from forced*.fits produced by forcedPhotCoadd.py. 
+\item \code{Mosaic_ForceCoordPhoto}:
+contains the derived information like magnitudes and celestial coordinates of forcelist
+objects, which are in \code{Mosaic_Forcelist} table.
 
-\item Mosaic\_ForceCoordPhoto\\
-The table contains the derived information like magnitudes and celestial coordinates of forcelist 
-objects, which are in Mosaic\_Forcelist table. 
-
-\item Photoobj\_Frame\\
-The table is the summary table contains objects which are in Frame\_Forcelist table. One record is 
+\item \code{Photoobj_Frame}:
+summary table of objects which are in \code{Frame_Forcelist} table. One record is 
 for one celestial object which have multiple entries of magnitudes/coordinated coming from all 
 measurement regarding to the object. The unique ID which comes from the forced photometry reference 
 will be used for gathering the all information on one celstial object mutiply measured in different 
 exposures. 
 
-\item Photoobj\_Mosaic\\
-The table is the summary table contains objects which are in Mosaic\_Forcelist table. One record is 
+\item \code{Photoobj_Mosaic}:
+summary table of objects which are in \code{Mosaic_Forcelist} table. One record is 
 for one celestial object which have magnitudes/coordinated coming from coadd images with different 
 filters. The unique ID which comes from the forced photometry reference will be used for gathering 
 the all information on one celstial object mutiply measured in different coadd images. 
 
 \end{itemize}
-\end{enumerate}
 
 \section{Algorithms}
 \label{sec:algorithms}
 
 Here we describe the various algorithms used within the pipeline.  Of particular interest are the flags
 (\S\ref{alg:flags}) and measurements (\S\ref{alg:measurements}) that will comprise the source catalogs
-produced in each pipeline stage, and ingested into the database.  Then follows various general algorithms
+produced in each pipeline stage, and be ingested into the database.  Then follows various general algorithms
 used in the pipeline.
 
 \subsection{Flags}
 \label{alg:flags}
 
-Flags are binary decisions made about each object, and are useful for indicating how a measurement of that
-object should be interpreted, and if it is trustworthy.
+Flags are binary decisions for each object, indicating how measurements of that
+object should be interpreted, and if they are trustworthy.
 
 \subsubsection{Pixel flags}
 
 Pixel flags are flags set on the basis of pixel characteristics.  They comprise:
 \begin{itemize}
 \item \code{flags.pixel.edge} is set if the source is near the edge of the frame (where the signal-to-noise
-  requirement for detection is higher due to the convolution involved; and where measurements may be subject to
+  requirement for detection is higher due to the convolution involved; and where measurements may be prone to
   failure).
 \item \code{flags.pixel.bad} is set if any pixels in the source footprint have been masked as \code{BAD}
   (typically non-functioning detectors, or severely vignetted areas).
@@ -743,8 +756,9 @@ Pixel flags are flags set on the basis of pixel characteristics.  They comprise:
 
 The following flags indicate whether the source has been affected by a variety of conditions.  There are two
 modes for each: \code{<flag>.any} is set if any pixels in the source footprint have been affected (and
-therefore measurements may be impacted only subtly), while \code{<flag>.center} is set if any pixels in the
-$3\times 3$ region about the peak have been affected (and therefore measurements may be drastically wrong).
+therefore measurements may be impacted only subtly if at all), while \code{<flag>.center} is set if
+any pixels in the
+$3\times 3$ region about the peak have been affected (and therefore measurements are likely drastically wrong).
 
 \begin{itemize}
 \item \code{flags.pixel.interpolated}: pixels masked as \code{INTRP}, i.e., have been interpolated over, and
@@ -753,6 +767,11 @@ $3\times 3$ region about the peak have been affected (and therefore measurements
 \item \code{flags.pixel.suspect}: pixels masked as \code{SUSPECT}, i.e., are non-linear.
 \item \code{flags.pixel.cr}: pixels masked as \code{CR}, i.e., suspected cosmic-ray.
 \end{itemize}
+
+The following set of flags is recommended to catch most problems a source will have:
+\code{flags.pixel.interpolated.center|flags.pixel.saturated.center|
+  flags.pixel.suspect.center|flags.pixel.cr.center}.  Of course, you should also check
+the flag for the particular measurement algorithm of interest.
 
 \subsubsection{Algorithm flags}
 
@@ -763,10 +782,11 @@ appended, e.g., \code{flux.gaussian.flags}.
 
 Many flux measurement algorithms have an additional flag that may be set if performing the flux measurement on
 the PSF at the position of the object failed, and therefore the PSF flux correction cannot be applied (see
-\S\ref{alg:measurements}).  These are named after the measurement with \code{.flags.psffactor} appended.
+\S\ref{alg:measurements-flux}).  These are named after the measurement with \code{.flags.psffactor} appended.
 
 \subsubsection{Calibration flags}
 
+The following flags are set in the visit processing stage as part of calibrating the image:
 \begin{itemize}
 \item \code{calib.detected} is set if the source was detected in calibration (as a bright source).
 \item \code{calib.psf.candidate} is set if the source was selected as a candidate PSF star.
@@ -781,19 +801,20 @@ siblings) to be identified.
 
 \subsubsection{Stack flags}
 
-Some additional flags are present for the stack sources, intended to help disambiguate overlaps:
+Some additional flags are present for the stack processing stage, intended to help disambiguate overlaps
+(see \S\ref{alg:skymap}):
 \begin{itemize}
 \item \code{detect.is-patch-inner} is set if the source is in the inner region of a patch (not in the
   intra-tract inter-patch overlap area).
 \item \code{detect.is-tract-inner} is set if the source is in the inner region of a tract (not in the
   inter-tract overlap area).
-\item \code{detect.is-primary} is set if the source has no children and \code{detect.is-patch-inner} and \code{detect.is-tract-inner} (i.e., should be considered as the primary detection of this source).
+\item \code{detect.is-primary} is set if the source has no children and \code{detect.is-patch-inner} and \code{detect.is-tract-inner} (i.e., should be considered as the primary stack detection of this source).
 \end{itemize}
 
 \subsubsection{Other}
 
 \begin{itemize}
-\item \code{flags.negative} is set if the source was detected as a negative (principally used in the
+\item \code{flags.negative} is set if the source was detected as negative (principally used in the
   difference stage).
 \item \code{flags.badcentroid} is set if the principal centroid algorithm (used to feed all other algorithms)
   failed.
@@ -810,9 +831,11 @@ pipeline; \tbd{the mapping of these names to the database is not yet known}.
 \subsubsection{Centroids}
 
 Each centroiding algorithm provides the centroid (in a column named directly after the algorithm) and a packed
-covariance matrix (\code{<algorithm>.err}); note that the covariance term is often \tbd{always?} unset.
+covariance matrix (\code{<algorithm>.err}); note that the covariance term ($\sigma_{xy}$) is often
+\tbd{always?} unset.
 
 \paragraph{centroid.sdss}
+\label{alg:centroid.sdss}
 The same centroiding algorithm as employed in SDSS \citep{SdssPhoto}, wherein the image is smoothed by the
 PSF, and a Gaussian Quartic Interpolation is applied to the pixels surrounding the peak which, in particular,
 works for critically-sampled images (whereas a simple parabolic fit does not).  The peak determination is
@@ -835,10 +858,12 @@ ways of measuring shapes, there is a diversity of measurements; when a measureme
 standard pattern, we detail the outputs.
 
 \paragraph{shape.sdss}
+\label{alg:shape.sdss}
 The SDSS adaptive moments, whereby the second moments are measured iteratively, with a Gaussian weight with
 size set from the previous iteration.
 
 \paragraph{shape.hsm}
+\label{alg:shape.hsm}
 Various shape measurements intended for weak lensing, originally developed by \citet{2003MNRAS.343..459H} and
 tested on SDSS by \citet{2005MNRAS.361.1287M}.  The PSF correction methods are:
 \begin{itemize}
@@ -854,7 +879,7 @@ Each of these algorithms provide:
 \item \code{<algorithm>.moments}: The uncorrected moments.
 \item \code{<algorithm>.psf}: Moments of the PSF at the source position.
 \item \code{<algorithm>.e1} and \code{<algorithm>.e2}: The ellipticity (\citealt{2002AJ....123..583B};
-  \code{nj}, \code{linear}, \code{regauss}) or estimated shear (\code{ksb}, \code{shapelet}).
+  \code{bj}, \code{linear}, \code{regauss}) or estimated shear (\code{ksb}, \code{shapelet}).
 \item \code{<algorithm>.resolution}: Resolution factor (0 means unresolved, 1 means resolved).
 \item \code{<algorithm>.sigma}: Width.
 \end{itemize}
@@ -872,7 +897,8 @@ A shapelet-based method described in \citet{2012arXiv1209.4643M}, which originat
 \item \code{shape.miyatake.status}: Status code.
 \end{itemize}
 
-\subsection{Fluxes}
+\subsubsection{Fluxes}
+\label{alg:measurements-flux}
 
 Each flux measurement algorithm provides a flux (\code{<algorithm>}) and corresponding error
 (\code{<algorithm>.err}).
@@ -884,17 +910,21 @@ column in the catalogs beyond those listed below, \code{<algorithm>.psffactor}, 
 applying the algorithm to the PSF model.
 
 \paragraph{flux.psf}
+\label{alg:flux.psf}
 A PSF flux: the total flux of the source, weighted by the PSF.
 
 \paragraph{flux.sinc}
+\label{alg:flux.sinc}
 The total flux of the source within a specified aperture.  This is calculated using sinc interpolation so the
 value is the exact amount within the aperture, rather than being scaled to a non-integral number of pixels
 after summing only pixels lying entirely within the aperture \citep{2013MNRAS.431.1275B}.
 
 \paragraph{flux.gaussian}
+\label{alg:flux.gaussian}
 The flux from fitting a Gaussian model, with shape defined by the adaptive moments (\code{shape.sdss}).
 
 \paragraph{flux.kron}
+\label{alg:flux.kron}
 Flux using an elliptical aperture defined by \citet{1980ApJS...43..305K}: the Kron radius is measured as the
 moment within an (elliptical) aperture of six times the (adaptive) moment, and the Kron flux is measured
 within an (elliptical) aperture of twice the Kron radius.  The sinc algorithm is used to measure the exact
@@ -902,6 +932,7 @@ flux within this aperture.  The shape of the elliptical aperture is defined by t
 (\code{shape.sdss}).
 
 \paragraph{flux.petrosian}
+\label{alg:flux.petrosian}
 Flux using an (elliptical) aperture defined by \citet{1976ApJ...209L...1P} and, implemented in the same manner
 as described in Section~A3 of \citet{2002AJ....124.1810S}: the Petrosian radius is the radius, $r$, for which
 the surface brightness within an (elliptical) annulus from $0.8r$ to $1.25r$ is 0.2 times the mean surface
@@ -911,21 +942,67 @@ Petrosian radius.  The shape of the elliptical aperture is defined by the adapti
   exists somewhere.}
 
 \subsubsection{MultiShapelet}
+\label{alg:multishapelet}
 
-Model fluxes are determined from fitting PSF-convolved elliptical models to the source.  We fit separately a
-pure exponential model, a pure de\ Vaucouleur model, and a linear combination of these two models (neither
-component is allowed to be negative, and the ellipses are fixed, so this is not quite a true bulge-disk
-decomposition).  This is similar to the SDSS ``cmodel'' fluxes \citep{SdssPhoto}, except that the profiles are
-constructed approximately from sums of Gaussians (8 for each profile; \citealt{HoggLangMoG}), and are
-convolved with a shapelet approximation of the PSF.
+%Model fluxes are determined from fitting PSF-convolved elliptical models to the source.  We fit separately a
+%pure exponential model, a pure de\ Vaucouleur model, and a linear combination of these two models (neither
+%component is allowed to be negative, and the ellipses are fixed, so this is not quite a true bulge-disk
+%decomposition).  This is similar to the SDSS ``cmodel'' fluxes \citep{SdssPhoto}, except that the profiles are
+%constructed approximately from sums of Gaussians (8 for each profile; \citealt{HoggLangMoG}), and are
+%convolved with a shapelet approximation of the PSF.
+
+PSF-convolved galaxy models are a major
+component of both galaxy flux measurements and shape
+measurement for weak lensing.  Convolving and evaluating these models
+on a pixel grid is both computationally expensive and difficult from
+an accuracy perspective, so as a baseline approach we have adopted the
+methods of \cite{HL2013} and \cite{Bosch2010}, in which a fixed-slope
+Sersic profile is approximated by a sum of Gaussians,
+and convolved analytically with a PSF model approximated as a sum of
+multi-scale shapelet functions.  Aside from speed, a major advantage
+of this approach is its transparency: while we must approximate both
+the galaxy profile and the PSF model, these approximations are
+explicit, and we can increase the fidelity of both in a
+straightforward way.  Alternative methods that involve convolutions in
+real-space or Fourier-space involve difficult decisions with much less
+clear impacts on the fidelity of the models, involving how to
+handle the wide range spatial frequencies caused by the cuspy cores
+and broad wings of realistic galaxy profiles.
+
+One distinct disadvantage of this ``multishapelet'' approach to galaxy
+modeling construction is that it cannot easily handle Sersic models in
+which the Sersic index is a free parameter; the sum of Gausssians that
+approximates a Sersic profile with a certain Sersic index must be
+precomputed.  We can fit linear combinations of fixed-index Sersic
+profiles, however, and these fits are signficantly more
+numerically stable.  The linear combination amplitudes also show a tight
+correlation with free-index Sersic \tbd{RHL: reference from SDSS?},
+which may mean that true free-index Sersic fits may be unnecessary.
+
+Exactly which models will be fit and which parameters will be allowed
+to vary is a current research topic, but as a baseline we have
+implemented the same approach used in the SDSS \code{cmodel} magnitudes
+\citep{SdssPhoto},
+in which a pure exponential and pure de Vaucouleur are each fit
+separately, and then their linear combination is fit while the ellipse
+parameters are held fixed.  We will also explore the two component
+partial bulge+disk fit used in \cite{Miller2013}, in which the bulge
+radius is a fixed fraction of the disk radius and the ellipticity of
+both components are the same, as well as true bulge+disk fits with
+more free parameters.  We may try models with more than two components
+as well, in the hopes of providing an even better analogue to
+free-index single-Sersic fits.
+
+The output parameters for each of the \code{multishapelet} components
+are shown below:
 
 \paragraph{multishapelet.psf}
 
 \begin{itemize}
-\item \code{<algorithm>.inner}: Gauss-Hermite coefficients of the inner expansion.
-\item \code{<algorithm>.outer}: Gauss-Hermite coefficients of the outer expansion.
-\item \code{<algorithm>.ellipse}: Ellipse corresponding to the inner expansion.
-\item \code{<algorithm>.chisq}: Reduced $\chi^2$ of the final shapelet fit.
+\item \code{<algorithm>.inner}: Gauss-Hermite coefficients of the inner expansion of the PSF.
+\item \code{<algorithm>.outer}: Gauss-Hermite coefficients of the outer expansion of the PSF.
+\item \code{<algorithm>.ellipse}: Ellipse corresponding to the inner expansion of the PSF.
+\item \code{<algorithm>.chisq}: Reduced $\chi^2$ of the final shapelet fit to the PSF.
 \item \code{<algorithm>.integral}: Integral of the shapelet PSF model to infinite radius.
 \end{itemize}
 
@@ -946,30 +1023,49 @@ convolved with a shapelet approximation of the PSF.
   radius; and error.
 \item \code{<algorithm>.ellipse}: half-light radius ellipse.
 \item \code{<algorithm>.psffactor.ellipse}: half-light radius ellipse for fit to PSF model realization.
-\item \code{<algorithm>.chisq}: reduced $chi^2$.
+\item \code{<algorithm>.chisq}: reduced $\chi^2$.
 \end{itemize}
 
 \begin{itemize}
-\item \code{<algorithm>.flags}: general failure
-\item \code{<algorithm>.flags.maxiter}: the optimizer ran into the maximum number of iterations limit
-\item \code{<algorithm>.flags.tinystep}: the optimizer step or trust region got so small no progress could be made
-\item \code{<algorithm>.flags.largearea}: the best-fit half-light ellipse area is larger than the number of pixels used
+\item \code{<algorithm>.flags}: general failure.
+\item \code{<algorithm>.flags.maxiter}: the optimizer ran into the maximum number of iterations limit.
+\item \code{<algorithm>.flags.tinystep}: the optimizer step or trust region got so small no progress could be
+  made.
+\item \code{<algorithm>.flags.largearea}: the best-fit half-light ellipse area is larger than the number of
+  pixels used.
 \end{itemize}
 
 \paragraph{multishapelet.combo}
 
 \begin{itemize}
 \item \code{<algorithm>.flux}: combined flux of the linear combination of fixed-profile models; and error.
-\item \code{<algorithm>.devfrac}: fraction of total flux in the de Vaucouleur component
+\item \code{<algorithm>.devfrac}: fraction of total flux in the de Vaucouleur component.
 \end{itemize}
 
 \subsection{Source identifiers}
 
+Source identifiers are integers (typically 64-bit) that identify a particular source.  For uniqueness, they
+encode information about the image on which they were measured.
+
 \subsubsection{Visit}
+
+The leftmost 32 bits encodes the visit and ccd:
+
+\code{idBase = visit*200 + ccd}
+
+\code{visit = int((id>>32)/200)}
+
+\code{ccd = (id>>32)%200}
+
 \subsubsection{Stack}
 
-\tbd{Will need to be updated when we produce stacks at multiple epochs: include average MJD and time range in
-  days (as a proxy for starting and ending dates).}
+The leftmost 37 bits encode the tract (specified by an integer), patch (specified by x and y integers) and
+filter (indentified by a unique integer):
+
+\code{idBase = (tract*2^13 + xPatch)*2^13 + yPatch)*8 + filterNum}
+
+\tbd{This will need to be updated when we produce stacks at multiple epochs: include average MJD and
+  time range in days (as a proxy for starting and ending dates).}
 
 \subsection{Background Matching}
 \label{alg:backgroundMatching}
@@ -992,6 +1088,7 @@ The subtracted image also provides an opportunity to identify sharp features suc
 and other contaminants that can be masked.
 
 \subsection{PSF}
+\label{alg:psf}
 
 We run separate algorithms to select candidate stars and determine the point-spread function (PSF, the light
 distribution for a point source, a critical ingredient to understanding the data and measuring accurate
@@ -1019,11 +1116,11 @@ We are currently (August 2013) investigating the use of other PSF models, includ
 \subsection{CoaddPsf}
 \label{alg:coaddPsf}
 
-Measurements on the stacks will use a PSF constructed from those of the input images (known as ``StackFit'',
-pioneered by \citealt{2012arXiv1210.2732J} on the Deep Lens Survey).  In this way, we can accurately follow
-the complicated (and discontinuously variable) PSF over the stacked image.  We expect these measurements will
-be scientifically useful in their own right, and they will be available relatively quickly, but will not be
-the most accurate possible because the stacking process necessarily discards data.
+%Measurements on the stacks will use a PSF constructed from those of the input images (known as ``StackFit'',
+%pioneered by \citealt{2012arXiv1210.2732J} on the Deep Lens Survey).  In this way, we can accurately follow
+%the complicated (and discontinuously variable) PSF over the stacked image.  We expect these measurements will
+%be scientifically useful in their own right, and they will be available relatively quickly, but will not be
+%the most accurate possible because the stacking process necessarily discards data.
 
 %%%
 %%% Contribution from Jim Bosch
@@ -1091,37 +1188,41 @@ have North and East vectors aligned with the columns and rows, respectively.
 \end{figure}
 
 \subsection{Mosaic}
+\label{alg:mosaic}
 
 For each exposure we can calibrate both astrometry and photometry using measurements of objects
-matched with reference catalog. But the number of objects are limited by reference catalog and
-the we may be affected by some systematic effects. Using multiple exposures and simultaneous fitting
-on them enable us more reliable and systematics free calibration. This is known as "uber-calibration" and
-applied to SDSS and Pan-STARRS1 photometry. In the pipeline we apply the same kind of method
+matched with a reference catalog (e.g., SDSS), but this limits us to bright objects reference catalog and
+we may be affected by some systematic effects. Simultaneously fitting multiple exposures enable a more
+reliable and systematics free calibration. This is known as "uber-calibration" and
+applied to SDSS \citep{2008ApJ...674.1217P} and Pan-STARRS1 \citep{2012ApJ...756..158S} photometry.
+In the pipeline we apply the same kind of method
 to each tract. "Uber-calibration" for entire survey region is a separate problem and not yet implemented.
 
-In our meas\_mosaic package we use both catalog matched objects and non-matched objects.
-Non-matched objects will be spatially matched between exposures based on astrometry determined 
+We use both objects that have been matched with the reference catalog and non-matched objects.
+Non-matched objects are matched between exposures based on astrometry determined
 by chip based analysis. Requirements for non-matched objects having consistent positions/fluxes
-contribute to better relative (internal) consistency and requirements for catalog matched objects 
-contribute to absolute (external) consistency. 
+contribute to better relative (internal) consistency and requirements for catalog matched objects
+contribute to absolute (external) consistency.
 
-In astrometry optical distortion of the system is modeled by polynomial functions of focal plane coordinates.
+In fitting the astrometry, the optical distortion of the system is modeled as polynomial functions of
+focal plane coordinates.
 We determine the coefficients of polynomials for each exposure. The locations of CCDs on the focal plane
 (offsets and rotations) are also fitting parameters.
-In photometry correction for the flat-field is modeled by polynomial functions of focal plane coordinates.
-Same as astrometry, the coefficients of polynomials are determined. Relative flux scales between exposures
+In fitting the photometry, a correction to the flat-field is modeled as polynomial functions of
+focal plane coordinates.
+We determine the coefficients of these polynomials in the same way as for the astrometry.  Relative flux
+scales between exposures
 are also determined.
 
-The mathematical functional forms are the following.
-
+The mathematical functional forms are as follows.
 In the following, super(sub)scription $s$, $e$, and $c$ denotes stars, exposures and chips, respectively.
 $(x,y)$ is a pixel coordinate within a chip, $(u,v)$ is a focal plane coordinate, $(\xi,\eta)$ is an projected
 celestial coordinate of the sky at $(A,D)$.
 
 For astrometry, we solve the equation for $\Delta a_k^e$, $\Delta b_k^e$, $\Delta X_c$, $\Delta Y_c$, and
-$\Delta\theta_c$ until it converges. For non-matched sources $\Delta\alpha^s$ and $\Delta\delta^s$ are also
-solved.  For matched sources their catalog values are used for their $(\alpha, \delta)$ and they are fixed.
-$\chi^2$ equation is linearized at eq (5). Initial values are estimated from the fit to matched sources for
+$\Delta\theta_c$ until it converges. For non-matched sources, $\Delta\alpha^s$ and $\Delta\delta^s$ are also
+solved.  For matched sources, the $(\alpha, \delta)$ are fixed to their catalog values.
+The $\chi^2$ equation is linearized at eq (5). Initial values are estimated from the fit to matched sources for
 individual exposures. Only multiply ($n\ge2$) observed non-matched sources are used in the fitting.
 
 \footnotesize
@@ -1229,9 +1330,8 @@ D_x = \sum_k a_k [u]^{i(k)-1} [v]^{j(k)-1} \{-i(k)[v](x^s\sin\theta_c+y^s\cos\th
 D_y = \sum_k b_k [u]^{i(k)-1} [v]^{j(k)-1} \{-i(k)[v](x^s\sin\theta_c+y^s\cos\theta_c)+j(k)[u](x^s\cos\theta_c-y^s\sin\theta_c) \} 
 \end{equation}
 
-For photometry, we solve for $f_{i,j}$, $dm^e$, and $m_0^s$. $m_0^s$ is the true magnitudes of stars and 
-for catalog matched objects $m_0^s$ will be replaced with $m_{cat}^s$ and fixed to give absolute
-calibration.
+For photometry, we solve for $f_{i,j}$, $dm^e$, and $m_0^s$. Here, $m_0^s$ is the true magnitudes of stars.
+For catalog matched objects, $m_0^s$ is fixed to $m_{cat}^s$ to yield an absolute calibration.
 
 \begin{equation}
 \chi^2 =  \sum_e \sum_s \left\{ m_0^s - \Biggl( m^{s,e}+dm^e+\sum_{i+j\le n} f_{i,j} [u^{s,e}]^i [v^{s,e}]^j \Biggr) \right\}^2
@@ -1244,9 +1344,10 @@ calibration.
     \includegraphics[scale=0.3]{figures/posScatter150.png}
     \includegraphics[scale=0.3]{figures/fluxScatter150.png}
     \caption{Results of mosaic solution for DITH-16H large dither
-      dataset (4x4 visits). In scatter plot, green points are external consistency
-      adn red points are internal consistency. In fluxScatter blue points are internal
-      consistency only for bright objects.\label{fig:mosaic}}
+      dataset (4x4 visits).  In the astrometry plot (left), green points are external consistency
+      (i.e., catalog matches; $\sim 50$~mas) and red points are internal consistency ($\sim 7$~mas).
+      The same colors are used in the photometry plot (right; 27~mmag external, 24~mmag internal),
+      and blue points are internal consistency only for bright objects (10~mmag).\label{fig:mosaic}}
 \end{figure}
 
 
@@ -1301,13 +1402,22 @@ And the following values are set:
 \end{itemize}
 
 \subsection{Star/galaxy separation}
+\label{alg:star-galaxy}
+
+We perform star/galaxy separation based on the ratio of PSF and model fluxes:
+\begin{itemize}
+\item \code{classification.extendedness = (0.95*flux.gaussian < flux.psf) ? 0.0 : 1.0}
+\end{itemize}
+
 
 \subsection{Cosmic ray identification}
+\label{alg:cosmicray}
 
 We use the same algorithm as in SDSS to identify cosmic-rays by their morphology (see Section 4.3 of
 \citealt{SdssPhoto}).  We have found this works well on the Hamamatsu thick CCDs in Suprime-Cam.
 
 \subsection{Fringe subtraction}
+\label{alg:fringe}
 
 The Suprime-Cam data shows mild fringing in the $y$-band.  We construct fringes\footnote{This code fell out a
   little while ago, but it is easy to revive it.} by combining with rejection many night-time science
@@ -1317,13 +1427,16 @@ scaling of the fringe frame may be determined (with careful clipping to discard 
 astrophysical sources).  The scaled fringe frame is then subtracted from the science frame.
 
 \subsection{Background models}
+\label{alg:background}
 
 A smooth background is estimated and removed from the image.  We begin by measuring the background level in
 cells (typically 256 or 512 pixels square) using (by default) a clipped mean, and ignoring pixels that are
 part of detected sources.  We then construct an interpolating spline (Akima spline, by default) to estimate
-the background level in each pixel.
+the background level in each pixel.  Background models are saved, for later restoration (e.g., in background
+matching, \S\ref{alg:backgroundMatching}).
 
 \subsection{Warping}
+\label{alg:warp}
 
 In warping an image from the detector frame to the sky frame, we apply a resampling kernel.  The kernel is set
 according to the sub-pixel position on the input image of the centre of the corresponding output pixel.  The
@@ -1331,71 +1444,26 @@ code supports using Lanczos (of configurable order), bilinear or nearest-neighbo
 Lanczos (with $10^6$ cache realisations), as a compromise between the infinite Sinc function and the need for
 speed.
 
-\subsection{MultiShapelet}
-
-PSF-convolved galaxy models are a major
-component of both galaxy flux measurements and shape
-measurement for weak lensing.  Convolving and evaluating these models
-on a pixel grid is both computationally expensive and difficult from
-an accuracy perspective, so as a baseline approach we have adopted the
-methods of \cite{HL2013} and \cite{Bosch2010}, in which a fixed-slope
-Sersic profile is approximated by a sum of Gaussians,
-and convolved analytically with a PSF model approximated as a sum of
-multi-scale shapelet functions.  Aside from speed, a major advantage
-of this approach is its transparency: while we must approximate both
-the galaxy profile and the PSF model, these approximations are
-explicit, and we can increase the fidelity of both in a
-straightforward way.  Alternative methods that involve convolutions in
-real-space or Fourier-space involve difficult decisions with much less
-clear impacts on the fidelity of the models, involving how to
-handle the wide range spatial frequencies caused by the cuspy cores
-and broad wings of realistic galaxy profiles.
-
-One distinct disadvantage of this ``multishapelet'' approach to galaxy
-modeling construction is that it cannot easily handle Sersic models in
-which the Sersic index is a free parameter; the sum of Gausssians that
-approximates a Sersic profile with a certain Sersic index must be
-precomputed.  We can fit linear combinations of fixed-index Sersic
-profiles, however, and these fits are signficantly more
-numerically stable.  The linear combination amplitudes also show a tight
-correlation with free-index Sersic (NEED REFERENCE FROM SDSS; RHL
-SHOULD KNOW OF ONE), which may mean that true free-index Sersic fits
-may be unnecessary.
-
-Exactly which models will be fit and which parameters will be allowed
-to vary is a current research topic, but as a baseline we have
-implemented the same approach used in the SDSS ``cmodel'' magnitudes
-(CITE SDSS PHOTO ``PAPER''),
-in which a pure exponential and pure de Vaucouleur are each fit
-separately, and then their linear combination is fit while the ellipse
-parameters are held fixed.  We will also explore the two component
-partial bulge+disk fit used in \cite{Miller2013}, in which the bulge
-radius is a fixed fraction of the disk radius and the ellipticity of
-both components are the same, as well as true bulge+disk fits with
-more free parameters.  We may try models with more than two components
-as well, in the hopes of providing an even better analogue to
-free-index single-Sersic fits.
-
 \subsection{Reference catalog}
 
-\tbd{Reference catalog for forced measurement}
+The reference catalog used for forced measurement will be derived from detections and measurements on the
+$i$-band coadd.
+
+\tbd{We want to use $\chi^2$ coadds plus individual bands (e.g., to catch high-z quasars); do we need to worry
+  about differences in deblending, etc.?}
 
 
-\section{External Interfaces}
-\label{sec:interfaces}
+\section{Data Access}
+\label{sec:access}
 
-Note: We are currently prototyping a system, so this section is subject
-to change as the system design progresses.
+Here we describe how the pipeline products can be retrieved by collaboration members, and ultimately the world.
 
-%\subsection{Database}
-%\subsection{Postage Stamps}
+\tbd{Note: We are currently prototyping a system, so this section is subject
+  to change as the system design progresses.}
+
 \subsection{Data Archive System (DAS)}
-We provide a web-based user interface to retrieve the data products by
-the SSP collaborators. The data products includes processed images of
-individual CCDs (CORR), object catalogs of individual processed CCDs (SRC),
-and  match lists (SRCML) which are merged catalogs of detected sources
-cross-matched with external calibration sources. See the previous
-section of Data Products.
+We provide a web-based user interface to retrieve the data products, including images and catalogs, detailed
+in \S\ref{sec:products}.
 
 \subsubsection{Servers in the system}
 \begin{itemize}
@@ -1403,130 +1471,117 @@ section of Data Products.
 (1) to search for necessary data products, and (2) submit a job to
 post-process on products, and to download the products, and (3) monitor
 status of the job execution. This server updates a job control table
-for queueing jobs, and is also in changes of transferring files
+for queueing jobs, and is also responsible for transferring files
 to users' site.
 
-\item {\bf Processing Server} executes processes jobs in queue by
+\item {\bf Processing Server} executes jobs in the queue by
      referring to the job control table.
 
-\item {\bf DB Server} is as described in the above Database
-     section. Query for data search is processed on this server, based
-     on the job table, too.
+\item {\bf DB Server} holds the database, as described in \S\ref{sec:database}. Queries are processed on
+  this server, based on the job table, too.
 
-\item {\bf File Server} are mounted over NFS from the DAS Web \&
-     Processing Servers. All the data products are located in this
-     server in the same manner of hscPipe's directory-tree structure.
+\item {\bf File Servers} are mounted over NFS from the DAS Web \&
+     Processing Servers. All the data products are located on this
+     server.
 \end{itemize}
 
 \subsubsection{Database}
 The details of the database which stores meta information of data products
-are described in the above Database section. The basic idea is that we
-employ a few tables, in a single database space, dedicated to tie file
+are described in \S\ref{sec:database}. We
+employ a few tables (\code{*_Mng}), in a single database space, dedicated to tying file
 paths in the system and identification numbers of products like (visit,
-ccd, and processing rerun's). Those tables are referred to locate the
-files to retrieve. The tables includes FRAME\_MNG for per-CCD products, and 
-MOSAIC\_MNG for coadd images. 
+ccd, and processing rerun version).
 
-Another database space for Job control is created separately from the
+Another database space for job control is created separately from the
 products database. This database maintains user identification numbers
-and status of job queueing with time stamps, and is referred by the Job
+and status of job queueing with time stamps, and is used by the Job
 Processing Server.
 
 \subsubsection{Authentication}
 We plan to apply LDAP authentication for user access control on a
 user-by-user basis. By sharing the LDAP database with the Hilo base of
 Subaru Telescope, the access right to the both DAS and CAS contents is
-limited to only the registered Co-I members. 
+limited to only the registered collaboration members.
 
 Each user is assigned their own temporary disk space (capacity
-TBD; typically of $<<$TB). This space is a staging area which is used to store any files
+TBD; typically $<<$~1~TB). This space is a staging area which is used to store any files
 output by queries and to be downloaded by a user, including 
 symbolic links to the products, combined coadd images over a requested
-sky patches on the fly, or catalog CSV files etc.
+sky patches on the fly, or catalog CSV files, etc.
 
 \subsubsection{Job control and Backend Processes}
-The job control is done by Python scripts running on each of Processing
-and DB Servers, sharing the job control table. 
-The maximum number of simultaneous processes are limited in each server,
+The maximum number of simultaneous processes are limited on each server,
 for load balancing and stable operation of the system.
 
 Web Server updates queued jobs in the job control table, and DB Server
 processes the query jobs. Processing Server makes symbolic links to
 images or combine the coadd images from multiple sky patches into a
-single image per request. 
+single image per request.
 
 \subsubsection{Graphical User Interface (GUI) and Available Data Search}
-Currently, DAS GUI is implemented mainly in PHP with JavaScript, and
-provides users with the following functions of data retrieval.
+Currently, the DAS GUI provides users with the following functions of data retrieval:
 
 \begin{enumerate}
-\item Data search for Frame (CCD) and Mosaic (Coadd) products. These 
+\item Data search for Frame (CCD) and Mosaic (Coadd) products. These
      functions offer a simple data search in a typical basic condition
-     for SSP Co-I members.  The planned available options to query are filter
-     name, observing date \& time, and celestial coordinates (box
-     search or radial cone search with respect to the given central (RA, Dec)). 
-\item Direct SQL search for Frame (CCD) and Mosaic (Coadd) products. 
+     for collaboration members.  The planned available options to query are filter
+     name, observing date and time, and celestial coordinates (box
+     search or radial cone search with respect to the given central (RA, Dec) coordinates).
+\item Direct SQL search for Frame (CCD) and Mosaic (Coadd) products.
      In these windows, a user can feed their own SQL commands to the DB
-     server. 
-     A quick syntax check is provided. 
-    Currently, the output records is  limited to 1000 rows and CPU time
-     is 3 sec only for demonstration purpose.
-   We also plan to limit available SQL commands in order to unreasonable
+     server.
+     A quick syntax check is provided.
+    Currently, the output is limited to 1000 rows and CPU time
+     of only 3 sec, for demonstration purposes.
+   We also plan to limit available SQL commands in order to prohibit unreasonable
     queries which consumes enormous CPU time of DB Server.
 \item History of old queries. Any jobs submitted are recorded in users
      folder and are available in the later session as a template or
      for reprocessing a job.
 \item Download of files. Once the files are stored in an individual
-     staging area, a user can use wget to retrieve individual files or
-     a set of queried products to his/her site.
+     staging area, a user can use \code{wget} to retrieve individual files or
+     a set of queried products.
 \item Monitor of queue status. Status of data requests can be monitored
      with the name of queue and processing status with relevant time stamps.
 \end{enumerate}
 
 \subsection{Catalog Archive System (CAS)}
-The object catalog values of Frame catalogs and Mosaic-coadd catalogs
-will be provided through an web-based user interface of the Catalog Archive
-System (CAS). 
-We are under designing and prototyping of the minimal functions of CAS,
-collecting Co-I members' demands. 
+
+The object catalogs will be served through a web-based user interface of the Catalog Archive
+System (CAS).
+We are currently designing and prototyping the minimal functions of CAS and
+collecting collaboration members' requirements.
 The detailed table relation and schema of the backend
-catalog database is described in the above Database section.
+catalog database is described in \S\ref{sec:database}.
 
 \subsubsection{Graphical User Interface (GUI) and Available Data Search}
-Currently, only the direct SQL search for catalog sources are
-being tested, and several typical SQLs are available for the test. 
+
+Currently, only a direct SQL search for catalog sources is
+being tested, and several typical queries are available for the test.
 
 We plan to provide the simple search mode for a typical
-search condition which is similar to that in DAS. 
-Also, we plan to provide more thorough examples of SQL commands which will 
-be required in typical science cases of SSP.
+search condition which is similar to that in DAS.
+Also, we plan to provide more thorough examples of SQL commands which will
+be required for typical science cases.
 Preparation of individual work spaces associated with a temporary
-database, in a way of SDSS' CASJobs, is under discussion.
+database (similar to SDSS' CASJobs), is under discussion.
 
 In addition to the basic source search, the following functions are
-available (demonstrated in the collaboration meeting):
+available:
 \begin{enumerate}
 \item Quick Look Images of queried catalog sources. A user can toggle the
      viewing window of a quick look image (QLI) for searched sky area when
      available. This tool extracts the dumped JPEG image of
-     mosaic-coadded FITS data around the selected sources, and overlays
+     coadded FITS data around the selected sources, and displays
      it onto the resultant window of the data search. When a certain
      source in the resultant list is clicked, a circle is plotted on
-     the corresponding point on QLI. 
-\item Plotting tool. Any two of parameters returned from the query can
-     easily plotted on a dedicated graph window, to see the selected
-     sources have reasonable catalog values.
-\item Downloading catalogs. Selected sources are retrieval in the
-     following three file format: CSV file, SQLite database file, and
-     FITS BINTABLE file.
+     the corresponding point on QLI.
+\item Plotting tool. Any two parameters returned from the query can
+     be plotted on a dedicated graph window; this is useful for quick
+     verification of query results.
+\item Downloading catalogs. Selected sources may be retrieved using the
+     following file formats: CSV, SQLite database, and FITS BINTABLE.
 \end{enumerate}
-
-
-\subsection{Database}
-\subsection{Postage Stamps}
-\subsection{Copying}
-
-
 
 
 \section{Help and Support}
@@ -1534,7 +1589,7 @@ available (demonstrated in the collaboration meeting):
 
 The pipeline team is committed to supporting the collaboration in their understanding of the pipeline and the
 use of its products.  To this end, there are two principal means of interacting with the pipeline team.  We
-encourage collaboration members to use these means, rather than asking pipeline team members individually,
+encourage collaboration members to use these means, rather than asking individual pipeline team members,
 since they allow us to build up a body of support documentation that will be of use to the entire
 collaboration.  In contrast, questions asked and answered privately do not benefit anyone else.
 
@@ -1557,8 +1612,8 @@ accessible, at \url{http://jeeves.astro.princeton.edu/pipermail/hsc_software/}
 
 \clearpage
 
-\bibliographystyle{}
-\bibliography{pipeline/pipeline}
+\bibliographystyle{SciBook}
+\bibliography{description}
 
 \appendix
 
@@ -1569,9 +1624,12 @@ The current (as of August 2013) database schema is shown below, but is subject t
 developed.  For the most current version of the schema, please see the online schema browser:
 \url{http://hsc-gw1.mtk.nao.ac.jp/schema_browser/hsc/hsc_online_schema_tableonly.html}
 
+\tbd{Need to specify mapping between measurements (\S\ref{alg:flags}, \S\ref{alg:measurements}) and the
+database columns.}
+
 \tiny
 
-\begin{deluxetable}{llllll}[thbp]
+\begin{deluxetable}{llllll}
   \tabletypesize{\tiny}
   \rotate
   \tablecolumns{6}
