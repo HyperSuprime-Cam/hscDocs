@@ -933,9 +933,11 @@ The flux from fitting a Gaussian model, with shape defined by the adaptive momen
 \label{alg:flux.kron}
 Flux using an elliptical aperture defined by \citet{1980ApJS...43..305K}: the Kron radius is measured as the
 moment within an (elliptical) aperture of six times the (adaptive) moment, and the Kron flux is measured
-within an (elliptical) aperture of twice the Kron radius.  The sinc algorithm is used to measure the exact
+within an (elliptical) aperture of 2.5 times the Kron radius.  The sinc algorithm is used on smaller sized
+apertures (less than 10 pixels radius) to measure the exact
 flux within this aperture.  The shape of the elliptical aperture is defined by the adaptive moments
-(\code{shape.sdss}).
+(\code{shape.sdss}).  The Kron `radius' is the ``determinant radius'' ($\sqrt{ab}$, where $a$ and $b$ are the
+semi-major and semi-minor axes).
 
 \paragraph{flux.petrosian}
 \label{alg:flux.petrosian}
