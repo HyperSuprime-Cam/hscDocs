@@ -5,5 +5,13 @@
 *.toc
 *.bbl
 *.blg
+*.fls
+*.log
+*.fdb_latexmk
 
 description.pdf
+
+# website outputs
+pipeline_outputs.html
+pipeline_outputs.pdf
+figures/HSCpipelinesketch.png
