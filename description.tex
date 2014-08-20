@@ -786,10 +786,6 @@ indicates the measurement failed; typically this means an exceptional conditiona
 source being too close to the edge.  These algorithm flags are named after the measurement with \code{.flags}
 appended, e.g., \code{flux.gaussian.flags}.
 
-Many flux measurement algorithms have an additional flag that may be set if performing the flux measurement on
-the PSF at the position of the object failed, and therefore the PSF flux correction cannot be applied (see
-\S\ref{alg:measurements-flux}).  These are named after the measurement with \code{.flags.psffactor} appended.
-
 \subsubsection{Calibration flags}
 
 The following flags are set in the visit processing stage as part of calibrating the image:
@@ -909,11 +905,9 @@ A shapelet-based method described in \citet{2012arXiv1209.4643M}, which originat
 Each flux measurement algorithm provides a flux (\code{<algorithm>}) and corresponding error
 (\code{<algorithm>.err}).
 
-The zero-point of all fluxes is that of the PSF flux, so that fluxes of point sources by each algorithm should
-be equal (modulo the quality of the PSF model).  This is done by applying each measurement both to the source
-under consideration and the PSF model at that position; each flux measurement therefore has an additional
-column in the catalogs beyond those listed below, \code{<algorithm>.psffactor}, which is the flux from
-applying the algorithm to the PSF model.
+The zero-point of all fluxes is that of the sinc aperture flux, so that fluxes of point sources by each
+algorithm should be equal.  This is done by fitting an aperture correction over the image for each flux
+measurement, referenced to the sinc aperture flux.
 
 \paragraph{flux.psf}
 \label{alg:flux.psf}
@@ -1030,7 +1024,6 @@ are shown below:
 \item \code{<algorithm>.flux}: flux of multi-Gaussian approximation to the profile, integrated to infinite
   radius; and error.
 \item \code{<algorithm>.ellipse}: half-light radius ellipse.
-\item \code{<algorithm>.psffactor.ellipse}: half-light radius ellipse for fit to PSF model realization.
 \item \code{<algorithm>.chisq}: reduced $\chi^2$.
 \end{itemize}
 
@@ -2094,19 +2087,16 @@ shape\_sdss\_centroid\_y & double & Y of centroid measured with SDSS adaptive mo
 shape\_sdss\_centroid\_err & double[] & covariance matrix for shape.sdss.centre                  &                           & pixels$^2$         & {(x,x), (x,y), (y,y)}  \\
 flux\_gaussian & double & linear fit to an elliptical Gaussian with shape parameters set by adaptive moments  &                           & dn               & src\_flux\_gaussian  \\
 flux\_gaussian\_err & double & uncertainty for flux.gaussian                            &                           & dn               & src\_flux\_gaussian\_err  \\
-flux\_gaussian\_psffactor & double & flux from applying the algorithm to the PSF model      &                           &                  & src\_flux\_gaussian\_psffactor  \\
 flux\_naive & double & simple sum over pixels in a circular aperture            &                           & dn               & src\_flux\_naive  \\
 flux\_naive\_err & double & uncertainty for flux.naive                               &                           & dn               & src\_flux\_naive\_err  \\
 flux\_psf & double & flux measured by a fit to the PSF model                  &                           & dn               & src\_flux\_psf  \\
 flux\_psf\_err & double & uncertainty for flux.psf                                 &                           & dn               & src\_flux\_psf\_err  \\
-flux\_psf\_psffactor & double & flux from applying the algorithm to the PSF model      &                           &                  & src\_flux\_psf\_psffactor  \\
 flux\_sinc & double & elliptical aperture photometry using sinc interpolation  &                           & dn               & src\_flux\_sinc  \\
 flux\_sinc\_err & double & uncertainty for flux.sinc                                &                           & dn               & src\_flux\_sinc\_err  \\
 flux\_sinc2 & double & elliptical aperture photometry using sinc interpolation  &                           & dn               & src\_flux\_sinc2  \\
 flux\_sinc2\_err & double & uncertainty for flux.sinc                                &                           & dn               & src\_flux\_sinc2\_err  \\
 flux\_kron & double & Kron flux                                                &                           & dn               & src\_flux\_kron  \\
 flux\_kron\_err & double & uncertainty for flux.kron                                &                           & dn               & src\_flux\_kron\_err  \\
-flux\_kron\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & src\_flux\_kron\_psffactor \\
 flux\_kron\_radius & double & Kron radius                                              &                           &                  &             \\
 flux\_kron\_radiusforradius & double & Radius used to estimate <radius> (sqrt(a*b))        &                  &             & flux\_kron\_radiusForRadius \\
 correctfluxes\_apcorr & double & correction applied to model fluxes to match to 7.000000-pixel aperture  &                  &             & src\_correctfluxes\_apcorr \\
@@ -2134,18 +2124,15 @@ flag\_shape\_sdss\_flags\_unweighted & boolean & adaptive moments failed; fall b
 flag\_shape\_sdss\_flags\_unweightedbad & boolean & even the unweighted moments were bad                     &                           &                  & src\_shape\_sdss\_flags\_unweightedbad  \\
 flag\_shape\_sdss\_centroid\_flags & boolean & set if the shape.sdss.centroid measurement did not fully succeed  &                           &                  & src\_shape\_sdss\_centroid\_flags  \\
 flag\_flux\_gaussian\_flags & boolean & set if the flux.gaussian measurement failed              &                           &                  & src\_flux\_gaussian\_flags  \\
-flag\_flux\_gaussian\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                           &                  & src\_flux\_gaussian\_flags\_psffactor  \\
 %flag\_flux\_gaussian\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections& & & src\_flux\_gaussian\_flags\_badcorr\\
 %flag\_flux\_gaussian\_flags\_badapcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  & & & src\_flux\_gaussian\_flags\_badapcorr\\
 %flag\_flux\_naive\_flags & boolean & set if the flux.naive measurement failed                 &                           &                  & src\_flux\_naive\_flags  \\
 %flag\_flux\_psf\_flags & boolean & set if the flux.psf measurement failed                   &                           &                  & src\_flux\_psf\_flags  \\
-%flag\_flux\_psf\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                           &                  & src\_flux\_psf\_flags\_psffactor  \\
 %flag\_flux\_psf\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  &  &  & src\_flux\_psf\_flags\_badcorr  \\
 %flag\_flux\_sinc\_flags & boolean & set if the flux.sinc measurement failed                  &                           &                  & src\_flux\_sinc\_flags  \\
 %flag\_flux\_sinc2\_flags & boolean & set if the flux.sinc measurement failed                  &                           &                  & src\_flux\_sinc2\_flags  \\
 %flag\_flux\_kron\_flags & boolean & set if the flux.kron measurement failed                  &                           &                  & src\_flux\_kron\_flags  \\
 %flag\_flux\_kron\_flags\_aperture & boolean & set if the flux.kron\_radius determination failed ?          &                        &             & flux\_kron\_aperture\_flags \\
-%flag\_flux\_kron\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & src\_flux\_kron\_flags\_psffactor \\
 %flag\_flux\_kron\_flags\_radius & boolean & Bad Kron radius                                     &                  &             & src\_flux\_kron\_flags\_radius \\
 %flag\_flux\_kron\_flags\_smallradius & boolean & Measured Kron radius was smaller than that of the PSF  &                  &             & flux\_kron\_flags\_smallRadius \\
 %flag\_correctfluxes\_apcorr\_flags & boolean & flag set if aperture correction failed              &                  &             & src\_correctfluxes\_apcorr\_flags \\
@@ -2278,19 +2265,16 @@ shape\_sdss\_centroid\_y & double & Centroid Y of Shape (SDSS)                  
 shape\_sdss\_centroid\_err & double[] & Error of Centroids (SDSS) (Covariance(Point))       &                            & pixel$^2$     & (x,x)(x,y)(y,y)  \\
 flux\_gaussian & double & Flux of the object (Gaussian)                       &                            & dn         &   \\
 flux\_gaussian\_err & double & Error in Flux of the object (Gaussian)              &                            & dn         &   \\
-flux\_gaussian\_psffactor & double & flux from applying the algorithm to the PSF model &                            &             &   \\
 flux\_naive & double & Flux of the object (Naive)                          &                            & dn         &   \\
 flux\_naive\_err & double & Error in Flux of the object (Naive)                 &                            & dn         &   \\
 flux\_psf & double & Flux of the object (PSF)                            &                            & dn         &   \\
 flux\_psf\_err & double & Error in Flux of the object (PSF)                   &                            & dn         &   \\
-flux\_psf\_psffactor & double &  flux  from applying the algorithm to the PSF model  &                            &             &   \\
 flux\_sinc & double & Flux of the object (Sinc)                           &                            & dn         &   \\
 flux\_sinc\_err & double & Error in Flux of the object (Sinc)                  &                            & dn         &   \\
 flux\_sinc2 & double & elliptical aperture photometry using sinc interpolation  &                           & dn               & src\_flux\_sinc2  \\
 flux\_sinc2\_err & double & uncertainty for flux.sinc                                &                           & dn               & src\_flux\_sinc2\_err  \\
 flux\_kron & double & Flux of object (Kron)                               &                            & dn         &   \\
 flux\_kron\_err & double & Error in Flux of object (Kron)                      &                            & dn         &   \\
-flux\_kron\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & flux\_kron\_psffactor \\
 flux\_kron\_radius & double & Kron radius                                         &                            &            &   \\
 flux\_kron\_radiusforradius & double & Radius used to estimate <radius> (sqrt(a*b))        &                  &             & flux\_kron\_radiusForRadius \\
 correctfluxes\_apcorr & double & correction applied to model fluxes to match to 7.000000-pixel aperture  &                  &             & correctfluxes\_apcorr \\
@@ -2302,19 +2286,14 @@ multishapelet\_psf\_chisq & double & Reduced chi$^2$ of the final shapelet fit  
 multishapelet\_psf\_integral & double & Integral of the shapelet PSF model to infinite radius  &                  &             & multishapelet\_psf\_integral \\
 multishapelet\_dev\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius  &                  & dn          & multishapelet\_dev\_flux \\
 multishapelet\_dev\_flux\_err & double & uncertainty for multishapelet.dev.flux              &                  & dn          & multishapelet\_dev\_flux\_err \\
-multishapelet\_dev\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & multishapelet\_dev\_psffactor \\
 multishapelet\_dev\_ellipse & double[] & half-light radius ellipse                           &                  &             & multishapelet\_dev\_ellipse \\
-multishapelet\_dev\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  &                  &             & multishapelet\_dev\_psffactor\_ellipse \\
 multishapelet\_dev\_chisq & double & reduced chi$^2$                                       &                  &             & multishapelet\_dev\_chisq \\
 multishapelet\_exp\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius  &                  & dn          & multishapelet\_exp\_flux \\
 multishapelet\_exp\_flux\_err & double & uncertainty for multishapelet.exp.flux              &                  & dn          & multishapelet\_exp\_flux\_err \\
-multishapelet\_exp\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & multishapelet\_exp\_psffactor \\
 multishapelet\_exp\_ellipse & double[] & half-light radius ellipse                           &                  &             & multishapelet\_exp\_ellipse \\
-multishapelet\_exp\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  &                  &             & multishapelet\_exp\_psffactor\_ellipse \\
 multishapelet\_exp\_chisq & double & reduced chi$^2$                                       &                  &             & multishapelet\_exp\_chisq \\
 multishapelet\_combo\_flux & double & combined flux of the linear combination of fixed-profile models  &                  & dn          & multishapelet\_combo\_flux \\
 multishapelet\_combo\_flux\_err & double & uncertainty for multishapelet.combo.flux            &                  & dn          & multishapelet\_combo\_flux\_err \\
-multishapelet\_combo\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & multishapelet\_combo\_psffactor \\
 multishapelet\_combo\_devfrac & double & fraction of total flux in the de Vaucouleur component  &                  &             & multishapelet\_combo\_devfrac \\
 rotang\_north & double & ?                                                  &                            &             &   \\
 rotang\_east & double & ?                                                  &                            &             &   \\
@@ -2341,18 +2320,15 @@ flag\_shape\_sdss\_flags & boolean & set if the shape.sdss measurement failed   
 %flag\_shape\_sdss\_flags\_unweightedbad & boolean & even the unweighted moments were bad                &                            &             & shape\_sdss\_flags\_unweightedbad  \\
 %flag\_shape\_sdss\_centroid\_flags & boolean & set if the shape.sdss.centroid measurement did not fully succeed  &                            &             & shape\_sdss\_centroid\_flags  \\
 %flag\_flux\_gaussian\_flags & boolean & set if the flux.gaussian measurement failed         &                            &             & flux\_gaussian\_flags  \\
-%flag\_flux\_gaussian\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                            &             & flux\_gaussian\_flags\_psffactor  \\
 %flag\_flux\_gaussian\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections& & & flux\_gaussian\_flags\_badcorr  \\
 %flag\_flux\_gaussian\_flags\_badapcorr & boolean & ?                                                   &                            &             & flux\_gaussian\_flags\_badapcorr  \\
 %flag\_flux\_naive\_flags & boolean & set if the flux.naive measurement failed            &                            &             & flux\_naive\_flags  \\
 %flag\_flux\_psf\_flags & boolean & set if the flux.psf measurement failed              &                            &             & flux\_psf\_flags  \\
-%flag\_flux\_psf\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                            &             & flux\_psf\_flags\_psffactor  \\
 %flag\_flux\_psf\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  & &  & flux\_psf\_flags\_badcorr  \\
 %flag\_flux\_sinc\_flags & boolean & set if the flux.sinc measurement failed             &                            &             & flux\_sinc\_flags  \\
 %flag\_flux\_sinc2\_flags & boolean & set if the flux.sinc measurement failed                  &                           &                  & flux\_sinc2\_flags  \\
 %flag\_flux\_kron\_flags & boolean & set if the flux.kron measurement failed             &                            &             & flux\_kron\_flags  \\
 %flag\_flux\_kron\_flags\_aperture & boolean & set if the flux.kron\_radius determination failed ?          &                        &             & flux\_kron\_aperture\_flags \\
-%flag\_flux\_kron\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & flux\_kron\_flags\_psffactor \\
 %flag\_flux\_kron\_flags\_radius & boolean & Bad Kron radius                                     &                  &             & flux\_kron\_flags\_radius \\
 %flag\_flux\_kron\_flags\_smallradius & boolean & Measured Kron radius was smaller than that of the PSF  &                  &             & flux\_kron\_flags\_smallRadius \\
 %flag\_correctfluxes\_apcorr\_flags & boolean & flag set if aperture correction failed              &                  &             & correctfluxes\_apcorr\_flags \\
@@ -2375,7 +2351,6 @@ flag\_shape\_sdss\_flags & boolean & set if the shape.sdss measurement failed   
 %flag\_multishapelet\_psf\_flags\_constraint\_r & boolean & set if the best-fit radius was the minimum allowed by the constraint  &                  &             & multishapelet\_psf\_flags\_constraint\_r \\
 %flag\_multishapelet\_psf\_flags\_constraint\_q & boolean & set if the best-fit axis ratio (b/a) was the minimum allowed by the constraint  &            &             & multishapelet\_psf\_flags\_constraint\_q \\
 %flag\_multishapelet\_dev\_flux\_flags & boolean & set if the multishapelet.dev.flux measurement failed  &                  &             & multishapelet\_dev\_flux\_flags \\
-%flag\_multishapelet\_dev\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & multishapelet\_dev\_flags\_psffactor \\
 %flag\_multishapelet\_dev\_flags\_badcorr & boolean & ?                                                  &                            &             &   \\
 %flag\_multishapelet\_dev\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit  &                  &             & multishapelet\_dev\_flags\_maxiter \\
 %flag\_multishapelet\_dev\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made  &                  &             & multishapelet\_dev\_flags\_tinystep \\
@@ -2383,7 +2358,6 @@ flag\_shape\_sdss\_flags & boolean & set if the shape.sdss measurement failed   
 %flag\_multishapelet\_dev\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint  &                  &             & multishapelet\_dev\_flags\_constraint\_q \\
 %flag\_multishapelet\_dev\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used  &                  &             & multishapelet\_dev\_flags\_largearea \\
 %flag\_multishapelet\_exp\_flux\_flags & boolean & set if the multishapelet.exp.flux measurement failed  &                  &             & multishapelet\_exp\_flux\_flags \\
-%flag\_multishapelet\_exp\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & multishapelet\_exp\_flags\_psffactor \\
 %flag\_multishapelet\_exp\_flags\_badcorr & boolean & ?                                                  &                            &             &   \\
 %flag\_multishapelet\_exp\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit  &                  &             & multishapelet\_exp\_flags\_maxiter \\
 %flag\_multishapelet\_exp\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made  &                  &             & multishapelet\_exp\_flags\_tinystep \\
@@ -2391,7 +2365,6 @@ flag\_shape\_sdss\_flags & boolean & set if the shape.sdss measurement failed   
 %flag\_multishapelet\_exp\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint  &                  &             & multishapelet\_exp\_flags\_constraint\_q \\
 %flag\_multishapelet\_exp\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used  &                  &             & multishapelet\_exp\_flags\_largearea \\
 %flag\_multishapelet\_exp\_flux\_flags & boolean & set if the multishapelet.exp.flux measurement failed  &                  &             & multishapelet\_exp\_flux\_flags \\
-%flag\_multishapelet\_exp\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & multishapelet\_exp\_flags\_psffactor \\
 %flag\_multishapelet\_exp\_flags\_badcorr & boolean & ?                                                  &                            &             &   \\
 %flag\_multishapelet\_exp\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit  &                  &             & multishapelet\_exp\_flags\_maxiter \\
 %flag\_multishapelet\_exp\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made  &                  &             & multishapelet\_exp\_flags\_tinystep \\
@@ -2399,7 +2372,6 @@ flag\_shape\_sdss\_flags & boolean & set if the shape.sdss measurement failed   
 %flag\_multishapelet\_exp\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint  &                  &             & multishapelet\_exp\_flags\_constraint\_q \\
 %flag\_multishapelet\_exp\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used  &                  &             & multishapelet\_exp\_flags\_largearea \\
 %flag\_multishapelet\_combo\_flux\_flags & boolean & set if the multishapelet.combo.flux measurement failed  &                  &             & multishapelet\_combo\_flux\_flags \\
-%flag\_multishapelet\_combo\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & multishapelet\_combo\_flags\_psffactor \\
 %flag\_multishapelet\_combo\_flags\_badcorr & boolean & ?                                                  &                            &             &   \\
 %flag\_psfstarcandidate & boolean & Source was a candidate to determine the PSF         &                            &             & psfStarCandidate  \\
 %flag\_calib\_psfstarcandidate & boolean & Source was a candidate to determine the PSF         &                            &             & calib\_psfStarCandidate  \\
@@ -2508,19 +2480,16 @@ shape\_sdss\_centroid\_y & double & Centroid Y of Shape (SDSS)                  
 shape\_sdss\_centroid\_err & double[] & Error of Centroids (SDSS) (Covariance(Point))       &                            & pixel$^2$     & (x,x)(x,y)(y,y)  \\
 flux\_gaussian & double & Flux of the object (Gaussian)                       &                            & dn         &   \\
 flux\_gaussian\_err & double & Error in Flux of the object (Gaussian)              &                            & dn         &   \\
-flux\_gaussian\_psffactor & double & flux from applying the algorithm to the PSF model &                            &             &   \\
 flux\_naive & double & Flux of the object (Naive)                          &                            & dn         &   \\
 flux\_naive\_err & double & Error in Flux of the object (Naive)                 &                            & dn         &   \\
 flux\_psf & double & Flux of the object (PSF)                            &                            & dn         &   \\
 flux\_psf\_err & double & Error in Flux of the object (PSF)                   &                            & dn         &   \\
-flux\_psf\_psffactor & double &  flux  from applying the algorithm to the PSF model  &                            &             &   \\
 flux\_sinc & double & Flux of the object (Sinc)                           &                            & dn         &   \\
 flux\_sinc\_err & double & Error in Flux of the object (Sinc)                  &                            & dn         &   \\
 flux\_sinc2 & double & Flux of the object (Sinc)                           &                            & dn         &   \\
 flux\_sinc2\_err & double & Error in Flux of the object (Sinc)                  &                            & dn         &   \\
 flux\_kron & double & Flux of object (Kron)                               &                            & dn         &   \\
 flux\_kron\_err & double & Error in Flux of object (Kron)                      &                            & dn         &   \\
-flux\_kron\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & flux\_kron\_psffactor \\
 flux\_kron\_radius & double & Kron radius                                         &                            &            &   \\
 flux\_kron\_radiusforradius & double & Radius used to estimate <radius> (sqrt(a*b))        &                  &             & flux\_kron\_radiusForRadius \\
 correctfluxes\_apcorr & double & correction applied to model fluxes to match to 7.000000-pixel aperture  &                  &             & correctfluxes\_apcorr \\
@@ -2532,19 +2501,14 @@ multishapelet\_psf\_chisq & double & Reduced chi$^2$ of the final shapelet fit  
 multishapelet\_psf\_integral & double & Integral of the shapelet PSF model to infinite radius       &                        &             & multishapelet\_psf\_integral \\
 multishapelet\_dev\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius &      & dn     & multishapelet\_dev\_flux \\
 multishapelet\_dev\_flux\_err & double & uncertainty for multishapelet.dev.flux                      &                        & dn          & multishapelet\_dev\_flux\_err \\
-multishapelet\_dev\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_dev\_psffactor \\
 multishapelet\_dev\_ellipse & double[] & half-light radius ellipse                                   & 3D                     &             & multishapelet\_dev\_ellipse \\
-multishapelet\_dev\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  & 3D                     &             & multishapelet\_dev\_psffactor\_ellipse \\
 multishapelet\_dev\_chisq & double & reduced chi$^2$                                               &                        &             & multishapelet\_dev\_chisq \\
 multishapelet\_exp\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius &       & dn    & multishapelet\_exp\_flux \\
 multishapelet\_exp\_flux\_err & double & Uncertainty for multishapelet.exp.flux                      &                        & dn          & multishapelet\_exp\_flux\_err \\
-multishapelet\_exp\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_exp\_psffactor \\
 multishapelet\_exp\_ellipse & double[] & half-light radius ellipse                                   & 3D                     &             & multishapelet\_exp\_ellipse \\
-multishapelet\_exp\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  & 3D                     &             & multishapelet\_exp\_psffactor\_ellipse \\
 multishapelet\_exp\_chisq & double & reduced chi$^2$                                               &                        &             & multishapelet\_exp\_chisq \\
 multishapelet\_combo\_flux & double & combined flux of the linear combination of fixed-profile models  &                   & dn          & multishapelet\_combo\_flux \\
 multishapelet\_combo\_flux\_err & double & uncertainty for multishapelet.combo.flux                    &                        & dn          & multishapelet\_combo\_flux\_err \\
-multishapelet\_combo\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_combo\_psffactor \\
 multishapelet\_combo\_devfrac & double & fraction of total flux in the de Vaucouleur component  &                  &             & multishapelet\_combo\_devfrac \\
 rotang\_north & double & ?                                                  &                            &             &   \\
 rotang\_east & double & ?                                                  &                            &             &   \\
@@ -2565,18 +2529,15 @@ aperturecorrection\_err & double & Error in Aperture correction                 
 %flag\_shape\_sdss\_flags\_unweightedbad & boolean & even the unweighted moments were bad                &                            &             & shape\_sdss\_flags\_unweightedbad  \\
 %flag\_shape\_sdss\_centroid\_flags & boolean & set if the shape.sdss.centroid measurement did not fully succeed  &                            &             & shape\_sdss\_centroid\_flags  \\
 %flag\_flux\_gaussian\_flags & boolean & set if the flux.gaussian measurement failed         &                            &             & flux\_gaussian\_flags  \\
-%flag\_flux\_gaussian\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                            &             & flux\_gaussian\_flags\_psffactor  \\
 %flag\_flux\_gaussian\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections & & & flux\_gaussian\_flags\_badcorr\\
 %flag\_flux\_gaussian\_flags\_badapcorr & boolean & ?                                                   &                            &             & flux\_gaussian\_flags\_badapcorr  \\
 %flag\_flux\_naive\_flags & boolean & set if the flux.naive measurement failed            &                            &             & flux\_naive\_flags  \\
 %flag\_flux\_psf\_flags & boolean & set if the flux.psf measurement failed              &                            &             & flux\_psf\_flags  \\
-%flag\_flux\_psf\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                            &             & flux\_psf\_flags\_psffactor  \\
 %flag\_flux\_psf\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  &  &  & flux\_psf\_flags\_badcorr\\
 %flag\_flux\_sinc\_flags & boolean & set if the flux.sinc measurement failed             &                            &             & flux\_sinc\_flags  \\
 %flag\_flux\_sinc2\_flags & boolean & set if the flux.sinc2 measurement failed  &                 &    & flag\_flux\_sinc2\_flags  \\
 %flag\_flux\_kron\_flags & boolean & set if the flux.kron measurement failed             &                            &             & flux\_kron\_flags  \\
 %flag\_flux\_kron\_flags\_aperture & boolean & set if the flux.kron\_radius determination failed ?          &                        &             & flux\_kron\_aperture\_flags \\
-%flag\_flux\_kron\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & flux\_kron\_flags\_psffactor \\
 %flag\_flux\_kron\_flags\_radius & boolean & Bad Kron radius                                     &                  &             & flux\_kron\_flags\_radius \\
 %flag\_flux\_kron\_flags\_smallradius & boolean & Measured Kron radius was smaller than that of the PSF  &                  &             & flux\_kron\_flags\_smallRadius \\
 %flag\_correctfluxes\_apcorr\_flags & boolean & flag set if aperture correction failed              &                  &             & correctfluxes\_apcorr\_flags \\
@@ -2598,7 +2559,6 @@ aperturecorrection\_err & double & Error in Aperture correction                 
 %flag\_multishapelet\_psf\_flags\_constraint\_r & boolean & set if the best-fit radius was the minimum allowed by the constraint &               &             & multishapelet\_psf\_flags\_constraint\_r \\
 %flag\_multishapelet\_psf\_flags\_constraint\_q & boolean & set if the best-fit axis ratio (b/a) was the minimum allowed by the constraint &     &             & multishapelet\_psf\_flags\_constraint\_q \\
 %flag\_multishapelet\_dev\_flux\_flags & boolean & set if the multishapelet.dev.flux measurement failed        &                        &             & multishapelet\_dev\_flux\_flags \\
-%flag\_multishapelet\_dev\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_dev\_flags\_psffactor \\
 %flag\_multishapelet\_dev\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections & & & multishapelet\_dev\_flags\_badcorr \\
 %flag\_multishapelet\_dev\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit &               &             & multishapelet\_dev\_flags\_maxiter \\
 %flag\_multishapelet\_dev\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made &        &        & multishapelet\_dev\_flags\_tinystep \\
@@ -2606,7 +2566,6 @@ aperturecorrection\_err & double & Error in Aperture correction                 
 %flag\_multishapelet\_dev\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint &          &             & multishapelet\_dev\_flags\_constraint\_r \\
 %flag\_multishapelet\_dev\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used &         &         & multishapelet\_dev\_flags\_largearea \\
 %flag\_multishapelet\_exp\_flux\_flags & boolean & set if the multishapelet.exp.flux measurement failed        &                        &             & multishapelet\_exp\_flux\_flags \\
-%flag\_multishapelet\_exp\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_exp\_flags\_psffactor \\
 %flag\_multishapelet\_exp\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &  & & multishapelet\_exp\_flags\_badcorr \\
 %flag\_multishapelet\_exp\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit &               &             & multishapelet\_exp\_flags\_maxiter \\
 %flag\_multishapelet\_exp\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made &       &         & multishapelet\_exp\_flags\_tinystep \\
@@ -2614,7 +2573,6 @@ aperturecorrection\_err & double & Error in Aperture correction                 
 %flag\_multishapelet\_exp\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint &          &             & multishapelet\_exp\_flags\_constraint\_q \\
 %flag\_multishapelet\_exp\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used &        &            & multishapelet\_exp\_flags\_largearea \\
 %flag\_multishapelet\_combo\_flux\_flags & boolean & set if the multishapelet.combo.flux measurement failed      &                        &             & multishapelet\_combo\_flux\_flags \\
-%flag\_multishapelet\_combo\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_combo\_flags\_psffactor \\
 %flag\_multishapelet\_combo\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &  & & multishapelet\_combo\_flags\_badcorr \\
 %flag\_psfstarcandidate & boolean & Source was a candidate to determine the PSF         &                            &             & psfStarCandidate  \\
 %flag\_calib\_psfstarcandidate & boolean & Source was a candidate to determine the PSF         &                            &             & calib\_psfStarCandidate  \\
@@ -2725,19 +2683,16 @@ shape\_sdss\_centroid\_y & double & Y of centroid measured with SDSS adaptive mo
 shape\_sdss\_centroid\_err & double[] & covariance matrix for shape.sdss.centre                  &                           & pixels$^2$         & {(x,x), (x,y), (y,y)}  \\
 flux\_gaussian & double & linear fit to an elliptical Gaussian with shape parameters set by adaptive moments  &                           & dn               & src\_flux\_gaussian  \\
 flux\_gaussian\_err & double & uncertainty for flux.gaussian                            &                           & dn               & src\_flux\_gaussian\_errrr  \\
-flux\_gaussian\_psffactor & double & flux from applying the algorithm to the PSF model      &                           &                  & src\_flux\_gaussian\_psffactor  \\
 flux\_naive & double & simple sum over pixels in a circular aperture            &                           & dn               & src\_flux\_naive  \\
 flux\_naive\_err & double & uncertainty for flux.naive                               &                           & dn               & src\_flux\_naive\_errrr  \\
 flux\_psf & double & flux measured by a fit to the PSF model                  &                           & dn               & src\_flux\_psf  \\
 flux\_psf\_err & double & uncertainty for flux.psf                                 &                           & dn               & src\_flux\_psf\_errrr  \\
-flux\_psf\_psffactor & double & flux from applying the algorithm to the PSF model      &                           &                  & src\_flux\_psf\_psffactor  \\
 flux\_sinc & double & elliptical aperture photometry using sinc interpolation  &                           & dn               & src\_flux\_sinc  \\
 flux\_sinc\_err & double & uncertainty for flux.sinc                                &                           & dn               & src\_flux\_sinc\_errrr  \\
 flux\_sinc2 & double & elliptical aperture photometry using sinc interpolation  &                           & dn               & src\_flux\_sinc2  \\
 flux\_sinc2\_err & double & uncertainty for flux.sinc                                &                           & dn               & src\_flux\_sinc2\_err  \\
 flux\_kron & double & Kron flux                                                &                           & dn               & src\_flux\_kron  \\
 flux\_kron\_err & double & uncertainty for flux.kron                                &                           & dn               & src\_flux\_kron\_errrr  \\
-flux\_kron\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & flux\_kron\_psffactor \\
 flux\_kron\_radius & double & Kron radius                                              &                           &                  &             \\
 flux\_kron\_radiusforradius & double & Radius used to estimate <radius> (sqrt(a*b))        &                  &             & flux\_kron\_radiusForRadius \\
 correctfluxes\_apcorr & double & correction applied to model fluxes to match to 7.000000-pixel aperture  &                  &             & correctfluxes\_apcorr \\
@@ -2766,18 +2721,15 @@ flag\_shape\_sdss\_flags\_unweighted & boolean & adaptive moments failed; fall b
 flag\_shape\_sdss\_flags\_unweightedbad & boolean & even the unweighted moments were bad                     &                           &                  & src\_shape\_sdss\_flags\_unweightedbad  \\
 flag\_shape\_sdss\_centroid\_flags & boolean & set if the shape.sdss.centroid measurement did not fully succeed  &                           &                  & src\_shape\_sdss\_centroid\_flags  \\
 %flag\_flux\_gaussian\_flags & boolean & set if the flux.gaussian measurement failed              &                           &                  & src\_flux\_gaussian\_flags  \\
-%flag\_flux\_gaussian\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                           &                  & src\_flux\_gaussian\_flags\_psffactor  \\
 %flag\_flux\_gaussian\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  &                           &                  & src\_flux\_gaussian\_flags\_badcorr  \\
 %flag\_flux\_gaussian\_flags\_badapcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  &                           &                  & src\_flux\_gaussian\_flags\_badapcorr  \\
 %flag\_flux\_naive\_flags & boolean & set if the flux.naive measurement failed                 &                           &                  & src\_flux\_naive\_flags  \\
 %flag\_flux\_psf\_flags & boolean & set if the flux.psf measurement failed                   &                           &                  & src\_flux\_psf\_flags  \\
-%flag\_flux\_psf\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                           &                  & src\_flux\_psf\_flags\_psffactor  \\
 %flag\_flux\_psf\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  &                           &                  & src\_flux\_psf\_flags\_badcorr  \\
 %flag\_flux\_sinc\_flags & boolean & set if the flux.sinc measurement failed                  &                           &                  & src\_flux\_sinc\_flags  \\
 %flag\_flux\_sinc2\_flags & boolean & set if the flux.sinc2 measurement failed                  &                           &                  & src\_flux\_sinc2\_flags  \\
 %flag\_flux\_kron\_flags & boolean & set if the flux.kron measurement failed                  &                           &                  & src\_flux\_kron\_flags  \\
 %flag\_flux\_kron\_flags\_aperture & boolean & set if the flux.kron\_radius determination failed ?          &                        &             & flux\_kron\_aperture\_flags \\
-%flag\_flux\_kron\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & flux\_kron\_flags\_psffactor \\
 %flag\_flux\_kron\_flags\_radius & boolean & Bad Kron radius                                     &                  &             & flux\_kron\_flags\_radius \\
 %flag\_flux\_kron\_flags\_smallradius & boolean & Measured Kron radius was smaller than that of the PSF  &                  &             & flux\_kron\_flags\_smallRadius \\
 %flag\_correctfluxes\_apcorr\_flags & boolean & flag set if aperture correction failed              &                  &             & correctfluxes\_apcorr\_flags \\
@@ -2922,19 +2874,16 @@ shape\_sdss\_centroid\_y & double & centroid measured with SDSS adaptive moment 
 shape\_sdss\_centroid\_err & double[] & covariance matrix for shape.sdss.centroid                   & {(x,x), (x,y), (y,y)}  & pixel$^2$     & shape\_sdss\_centroid\_errrr \\
 flux\_gaussian & double & linear fit to an elliptical Gaussian with shape parameters set by adaptive moments &         & dn          &   \\
 flux\_gaussian\_err & double & uncertainty for flux.gaussian                               &                        & dn          & flux\_gaussian\_errrr \\
-flux\_gaussian\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & flux\_psf\_psffactor \\
 flux\_naive & double & simple sum over pixels in a circular aperture               &                        & dn          & flux\_naive \\
 flux\_naive\_err & double & uncertainty for flux.naive                                  &                        & dn          & flux\_naive\_errrr \\
 flux\_psf & double & flux measured by a fit to the PSF model                     &                        & dn          & flux\_psf \\
 flux\_psf\_err & double & uncertainty for flux.psf                                    &                        & dn          & flux\_psf\_errrr \\
-flux\_psf\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & flux\_psf\_psffactor \\
 flux\_sinc & double & elliptical aperture photometry using sinc interpolation     &                        & dn          & flux\_sinc \\
 flux\_sinc\_err & double & uncertainty for flux.sinc                                   &                        & dn          & flux\_sinc\_errrr \\
 flux\_sinc2 & double & elliptical aperture photometry using sinc interpolation  &                           & dn               & src\_flux\_sinc2  \\
 flux\_sinc2\_err & double & uncertainty for flux.sinc                                &                           & dn               & src\_flux\_sinc2\_err  \\
 flux\_kron & double & Flux of object (Kron)                                       &                        & dn          &   \\
 flux\_kron\_err & double & Error in Flux of object (Kron)                              &                        & dn          &   \\
-flux\_kron\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & flux\_kron\_psffactor \\
 flux\_kron\_radius & double & Kron radius                                                 &                        & pixel       &   \\
 flux\_kron\_radiusforradius & double & Radius used to estimate <radius> (sqrt(a*b))        &                  &             & flux\_kron\_radiusForRadius \\
 correctfluxes\_apcorr & double & correction applied to model fluxes to match to 7.000000-pixel aperture  &                  &             & correctfluxes\_apcorr \\
@@ -2946,20 +2895,15 @@ multishapelet\_psf\_ellipse & double[] & Ellipse corresponding to the inner expa
 %multishapelet\_psf\_integral & double & Integral of the shapelet PSF model to infinite radius       &                        &             & multishapelet\_psf\_integral \\
 %multishapelet\_dev\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius &      & dn     & multishapelet\_dev\_flux \\
 %multishapelet\_dev\_flux\_err & double & uncertainty for multishapelet.dev.flux                      &                        & dn          & multishapelet\_dev\_flux\_err \\
-%multishapelet\_dev\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_dev\_psffactor \\
 %multishapelet\_dev\_ellipse & double[] & half-light radius ellipse                                   & 3D                     &             & multishapelet\_dev\_ellipse \\
-%multishapelet\_dev\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  & 3D      &             & multishapelet\_dev\_psffactor\_ellipse \\
 %multishapelet\_dev\_chisq & double & reduced chi$^2$                                               &                        &             & multishapelet\_dev\_chisq \\
 %multishapelet\_exp\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius &       & dn    & multishapelet\_exp\_flux \\
 %multishapelet\_exp\_flux\_err & double & Uncertainty for multishapelet.exp.flux                      &                        & dn          & multishapelet\_exp\_flux\_err \\
-%multishapelet\_exp\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_exp\_psffactor \\
 %multishapelet\_exp\_ellipse & double[] & half-light radius ellipse                                   & 3D                     &             & multishapelet\_exp\_ellipse \\
-%multishapelet\_exp\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  & 3D    &             & multishapelet\_exp\_psffactor\_ellipse \\
 %multishapelet\_exp\_chisq & double & reduced chi$^2$                                               &                        &             & multishapelet\_exp\_chisq \\
 %multishapelet\_combo\_flux & double & combined flux of the linear combination of fixed-profile models  &                   & dn          & multishapelet\_combo\_flux \\
 .................................  & ........& ....................................................& .................& ............& .............................\\
 multishapelet\_combo\_flux\_err & double & uncertainty for multishapelet.combo.flux                    &                        & dn          & multishapelet\_combo\_flux\_err \\
-multishapelet\_combo\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_combo\_psffactor \\
 multishapelet\_combo\_devfrac & double & fraction of total flux in the de Vaucouleur component  &                  &             & multishapelet\_combo\_devfrac \\
 %rotang\_north & double & ?                                                           &                        &             & rotang\_north \\
 %rotang\_east & double & ?                                                           &                        &             & rotang\_east \\
@@ -2989,18 +2933,15 @@ flag\_classification\_exposure\_photometric & boolean & set if source was used i
 %flag\_shape\_sdss\_flags\_unweightedbad & boolean & even the unweighted moments were bad                        &                        &             & shape\_sdss\_flags\_unweightedbad \\
 %flag\_shape\_sdss\_centroid\_flags & boolean & set if the shape.sdss.centroid measurement did not fully succeed &                   &             & shape\_sdss\_centroid\_flags \\
 %flag\_flux\_gaussian\_flags & boolean & set if the flux.gaussian measurement failed                 &                        &             & flux\_gaussian\_flags \\
-%flag\_flux\_gaussian\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & flux\_gaussian\_flags\_psffactor \\
 %flag\_flux\_gaussian\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &      &           & flux\_gaussian\_flags\_badcorr \\
 %flag\_flux\_gaussian\_flags\_badapcorr & boolean & ?                                      &                        &             & flux\_gaussian\_flags\_badapcorr \\
 %flag\_flux\_naive\_flags & boolean & set if the flux.naive measurement failed                    &                        &             & flux\_naive\_flags \\
 %flag\_flux\_psf\_flags & boolean & set if the flux.psf measurement failed                      &                        &             & flux\_psf\_flags \\
-%flag\_flux\_psf\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & flux\_psf\_flags\_psffactor \\
 %flag\_flux\_psf\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &      &           & flux\_psf\_flags\_badcorr \\
 %flag\_flux\_sinc\_flags & boolean & set if the flux.sinc measurement failed                     &                        &             & flux\_sinc\_flags \\
 %flag\_flux\_sinc2\_flags & boolean & set if the flux.sinc2 measurement failed                  &                           &                  & src\_flux\_sinc2\_flags  \\
 %flag\_flux\_kron\_flags & boolean & set if the flux.kron measurement failed                     &                        &             & flux\_kron\_flags \\
 %flag\_flux\_kron\_flags\_aperture & boolean & set if the flux.kron\_radius determination failed ?          &                        &             & flux\_kron\_aperture\_flags? \\
-%flag\_flux\_kron\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & flux\_kron\_flags\_psffactor \\
 %flag\_flux\_kron\_flags\_radius & boolean & Bad Kron radius                                     &                  &             & flux\_kron\_flags\_radius \\
 %flag\_flux\_kron\_flags\_smallradius & boolean & Measured Kron radius was smaller than that of the PSF  &                  &             & flux\_kron\_flags\_smallRadius \\
 %flag\_correctfluxes\_apcorr\_flags & boolean & flag set if aperture correction failed              &                  &             & correctfluxes\_apcorr\_flags \\
@@ -3022,7 +2963,6 @@ flag\_classification\_exposure\_photometric & boolean & set if source was used i
 %flag\_multishapelet\_psf\_flags\_constraint\_r & boolean & set if the best-fit radius was the minimum allowed by the constraint &               &             & multishapelet\_psf\_flags\_constraint\_r \\
 %flag\_multishapelet\_psf\_flags\_constraint\_q & boolean & set if the best-fit axis ratio (b/a) was the minimum allowed by the constraint &     &             & multishapelet\_psf\_flags\_constraint\_q \\
 %flag\_multishapelet\_dev\_flux\_flags & boolean & set if the multishapelet.dev.flux measurement failed        &                        &             & multishapelet\_dev\_flux\_flags \\
-%flag\_multishapelet\_dev\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_dev\_flags\_psffactor \\
 %flag\_multishapelet\_dev\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &    &          & multishapelet\_dev\_flags\_badcorr \\
 %flag\_multishapelet\_dev\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit &               &             & multishapelet\_dev\_flags\_maxiter \\
 %flag\_multishapelet\_dev\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made &        &        & multishapelet\_dev\_flags\_tinystep \\
@@ -3030,7 +2970,6 @@ flag\_classification\_exposure\_photometric & boolean & set if source was used i
 %flag\_multishapelet\_dev\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint &          &             & multishapelet\_dev\_flags\_constraint\_q \\
 %flag\_multishapelet\_dev\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used &         &         & multishapelet\_dev\_flags\_largearea \\
 %flag\_multishapelet\_exp\_flux\_flags & boolean & set if the multishapelet.exp.flux measurement failed        &                        &             & multishapelet\_exp\_flux\_flags \\
-%flag\_multishapelet\_exp\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_exp\_flags\_psffactor \\
 %flag\_multishapelet\_exp\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &  &  & multishapelet\_exp\_flags\_badcorr \\
 %flag\_multishapelet\_exp\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit &               &             & multishapelet\_exp\_flags\_maxiter \\
 %flag\_multishapelet\_exp\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made &       &         & multishapelet\_exp\_flags\_tinystep \\
@@ -3038,7 +2977,6 @@ flag\_classification\_exposure\_photometric & boolean & set if source was used i
 %flag\_multishapelet\_exp\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint &          &             & multishapelet\_exp\_flags\_constraint\_q \\
 %flag\_multishapelet\_exp\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used &        &            & multishapelet\_exp\_flags\_largearea \\
 %flag\_multishapelet\_combo\_flux\_flags & boolean & set if the multishapelet.combo.flux measurement failed      &                        &             & multishapelet\_combo\_flux\_flags \\
-%flag\_multishapelet\_combo\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_combo\_flags\_psffactor \\
 %flag\_multishapelet\_combo\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &  &  & multishapelet\_combo\_flags\_badcorr \\
 %flag\_psfstarcandidate & boolean & Source was a candidate to determine the PSF                 &                        &             & psfStarCandidate \\
 %flag\_calib\_psfstarcandidate & boolean & Source was a candidate to determine the PSF                 &                        &             & calib\_psfStarCandidate \\
@@ -3158,19 +3096,16 @@ shape\_sdss\_centroid\_y & double & Centroid Y of Shape (SDSS)                  
 shape\_sdss\_centroid\_err & double[] & Error of Centroids (SDSS) (Covariance(Point))       &                            & pixel$^2$     & (x,x)(x,y)(y,y)  \\
 flux\_gaussian & double & Flux of the object (Gaussian)                       &                            & dn         &   \\
 flux\_gaussian\_err & double & Error in Flux of the object (Gaussian)              &                            & dn         &   \\
-flux\_gaussian\_psffactor & double & flux from applying the algorithm to the PSF model &                            &             &   \\
 flux\_naive & double & Flux of the object (Naive)                          &                            & dn         &   \\
 flux\_naive\_err & double & Error in Flux of the object (Naive)                 &                            & dn         &   \\
 flux\_psf & double & Flux of the object (PSF)                            &                            & dn         &   \\
 flux\_psf\_err & double & Error in Flux of the object (PSF)                   &                            & dn         &   \\
-flux\_psf\_psffactor & double &  flux  from applying the algorithm to the PSF model  &                            &             &   \\
 flux\_sinc & double & Flux of the object (Sinc)                           &                            & dn         &   \\
 flux\_sinc\_err & double & Error in Flux of the object (Sinc)                  &                            & dn         &   \\
 flux\_sinc2 & double & Flux of the object (Sinc)                           &                            & dn         &   \\
 flux\_sinc2\_err & double & Error in Flux of the object (Sinc)                  &                            & dn         &   \\
 flux\_kron & double & Flux of object (Kron)                               &                            & dn         &   \\
 flux\_kron\_err & double & Error in Flux of object (Kron)                      &                            & dn         &   \\
-flux\_kron\_psffactor & double & flux from applying the algorithm to the PSF model   &                  &             & flux\_kron\_psffactor \\
 flux\_kron\_radius & double & Kron radius                                         &                            &            &   \\
 flux\_kron\_radiusforradius & double & Radius used to estimate <radius> (sqrt(a*b))        &                  &             & flux\_kron\_radiusForRadius \\
 correctfluxes\_apcorr & double & correction applied to model fluxes to match to 7.000000-pixel aperture  &                  &             & correctfluxes\_apcorr \\
@@ -3182,20 +3117,15 @@ multishapelet\_psf\_chisq & double & Reduced chi$^2$ of the final shapelet fit  
 multishapelet\_psf\_integral & double & Integral of the shapelet PSF model to infinite radius       &                        &             & multishapelet\_psf\_integral \\
 multishapelet\_dev\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius &      & dn     & multishapelet\_dev\_flux \\
 multishapelet\_dev\_flux\_err & double & uncertainty for multishapelet.dev.flux                      &                        & dn          & multishapelet\_dev\_flux\_err \\
-multishapelet\_dev\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_dev\_psffactor \\
 ......................&.........&....................................................&............................&.............&   \\
 %multishapelet\_dev\_ellipse & double[] & half-light radius ellipse                                   & 3D                     &             & multishapelet\_dev\_ellipse \\
-%multishapelet\_dev\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  & 3D                     &             & multishapelet\_dev\_psffactor\_ellipse \\
 %multishapelet\_dev\_chisq & double & reduced chi$^2$                                               &                        &             & multishapelet\_dev\_chisq \\
 %multishapelet\_exp\_flux & double & flux of multi-Gaussian approximation to the profile, integrated to infinite radius &       & dn    & multishapelet\_exp\_flux \\
 %multishapelet\_exp\_flux\_err & double & Uncertainty for multishapelet.exp.flux                      &                        & dn          & multishapelet\_exp\_flux\_err \\
-%multishapelet\_exp\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_exp\_psffactor \\
 %multishapelet\_exp\_ellipse & double[] & half-light radius ellipse                                   & 3D                     &             & multishapelet\_exp\_ellipse \\
-%multishapelet\_exp\_psffactor\_ellipse & double[] & half-light radius ellipse for fit to PSF model realization  & 3D                     &             & multishapelet\_exp\_psffactor\_ellipse \\
 %multishapelet\_exp\_chisq & double & reduced chi$^2$                                               &                        &             & multishapelet\_exp\_chisq \\
 %multishapelet\_combo\_flux & double & combined flux of the linear combination of fixed-profile models  &                   & dn          & multishapelet\_combo\_flux \\
 %multishapelet\_combo\_flux\_err & double & uncertainty for multishapelet.combo.flux                    &                        & dn          & multishapelet\_combo\_flux\_err \\
-%multishapelet\_combo\_psffactor & double & flux from applying the algorithm to the PSF model           &                        &             & multishapelet\_combo\_psffactor \\
 %multishapelet\_combo\_devfrac & double & fraction of total flux in the de Vaucouleur component  &                  &             & multishapelet\_combo\_devfrac \\
 %rotang\_north & double & ?                                                  &                            &             &   \\
 %rotang\_east & double & ?                                                  &                            &             &   \\
@@ -3217,18 +3147,15 @@ flag\_deblend\_too\_many\_peaks & boolean & Source had too many peaks, only the 
 %flag\_shape\_sdss\_flags\_unweightedbad & boolean & even the unweighted moments were bad                &                            &             & shape\_sdss\_flags\_unweightedbad  \\
 %flag\_shape\_sdss\_centroid\_flags & boolean & set if the shape.sdss.centroid measurement did not fully succeed  &                            &             & shape\_sdss\_centroid\_flags  \\
 %flag\_flux\_gaussian\_flags & boolean & set if the flux.gaussian measurement failed         &                            &             & flux\_gaussian\_flags  \\
-%flag\_flux\_gaussian\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                            &             & flux\_gaussian\_flags\_psffactor  \\
 %flag\_flux\_gaussian\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  &  & & flux\_gaussian\_flags\_badcorr\\
 %flag\_flux\_gaussian\_flags\_badapcorr & boolean & ?                                                   &                            &             & flux\_gaussian\_flags\_badapcorr  \\
 %flag\_flux\_naive\_flags & boolean & set if the flux.naive measurement failed            &                            &             & flux\_naive\_flags  \\
 %flag\_flux\_psf\_flags & boolean & set if the flux.psf measurement failed              &                            &             & flux\_psf\_flags  \\
-%flag\_flux\_psf\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                            &             & flux\_psf\_flags\_psffactor  \\
 %flag\_flux\_psf\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections  &    &  & flux\_psf\_flags\_badcorr  \\
 %flag\_flux\_sinc\_flags & boolean & set if the flux.sinc measurement failed             &                            &             & flux\_sinc\_flags  \\
 %flag\_flux\_sinc2\_flags & boolean & set if the flux.sinc2 measurement failed  &                 &    & flag\_flux\_sinc2\_flags  \\
 %flag\_flux\_kron\_flags & boolean & set if the flux.kron measurement failed             &                            &             & flux\_kron\_flags  \\
 %flag\_flux\_kron\_flags\_aperture & boolean & set if the flux.kron\_radius determination failed ?          &                        &             & flux\_kron\_aperture\_flags \\
-%flag\_flux\_kron\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                  &             & flux\_kron\_flags\_psffactor \\
 %flag\_flux\_kron\_flags\_radius & boolean & Bad Kron radius                                     &                  &             & flux\_kron\_flags\_radius \\
 %flag\_flux\_kron\_flags\_smallradius & boolean & Measured Kron radius was smaller than that of the PSF  &                  &             & flux\_kron\_flags\_smallRadius \\
 %flag\_correctfluxes\_apcorr\_flags & boolean & flag set if aperture correction failed              &                  &             & correctfluxes\_apcorr\_flags \\
@@ -3250,7 +3177,6 @@ flag\_deblend\_too\_many\_peaks & boolean & Source had too many peaks, only the 
 %flag\_multishapelet\_psf\_flags\_constraint\_r & boolean & set if the best-fit radius was the minimum allowed by the constraint &               &             & multishapelet\_psf\_flags\_constraint\_r \\
 %flag\_multishapelet\_psf\_flags\_constraint\_q & boolean & set if the best-fit axis ratio (b/a) was the minimum allowed by the constraint &     &             & multishapelet\_psf\_flags\_constraint\_q \\
 %flag\_multishapelet\_dev\_flux\_flags & boolean & set if the multishapelet.dev.flux measurement failed        &                        &             & multishapelet\_dev\_flux\_flags \\
-%flag\_multishapelet\_dev\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_dev\_flags\_psffactor \\
 %flag\_multishapelet\_dev\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &    &  & multishapelet\_dev\_flags\_badcorr \\
 %flag\_multishapelet\_dev\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit &               &             & multishapelet\_dev\_flags\_maxiter \\
 %flag\_multishapelet\_dev\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made &        &        & multishapelet\_dev\_flags\_tinystep \\
@@ -3258,7 +3184,6 @@ flag\_deblend\_too\_many\_peaks & boolean & Source had too many peaks, only the 
 %flag\_multishapelet\_dev\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint &          &             & multishapelet\_dev\_flags\_constraint\_q \\
 %flag\_multishapelet\_dev\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used &         &         & multishapelet\_dev\_flags\_largearea \\
 %flag\_multishapelet\_exp\_flux\_flags & boolean & set if the multishapelet.exp.flux measurement failed        &                        &             & multishapelet\_exp\_flux\_flags \\
-%flag\_multishapelet\_exp\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_exp\_flags\_psffactor \\
 %flag\_multishapelet\_exp\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &       &          & multishapelet\_exp\_flags\_badcorr \\
 %flag\_multishapelet\_exp\_flags\_maxiter & boolean & set if the optimizer ran into the maximum number of iterations limit &               &             & multishapelet\_exp\_flags\_maxiter \\
 %flag\_multishapelet\_exp\_flags\_tinystep & boolean & set if the optimizer step or trust region got so small no progress could be made &       &         & multishapelet\_exp\_flags\_tinystep \\
@@ -3266,7 +3191,6 @@ flag\_deblend\_too\_many\_peaks & boolean & Source had too many peaks, only the 
 %flag\_multishapelet\_exp\_flags\_constraint\_q & boolean & set if the best-fit ellipticity was the maximum allowed by the constraint &          &             & multishapelet\_exp\_flags\_constraint\_q \\
 %flag\_multishapelet\_exp\_flags\_largearea & boolean & set if the best-fit half-light ellipse area is larger than the number of pixels used &        &            & multishapelet\_exp\_flags\_largearea \\
 %flag\_multishapelet\_combo\_flux\_flags & boolean & set if the multishapelet.combo.flux measurement failed      &                        &             & multishapelet\_combo\_flux\_flags \\
-%flag\_multishapelet\_combo\_flags\_psffactor & boolean & set if the algorithm could not be applied to the PSF model  &                        &             & multishapelet\_combo\_flags\_psffactor \\
 %flag\_multishapelet\_combo\_flags\_badcorr & boolean & set if the flux could not be scaled to the canonical system because of problems with the canonical flux or aperture corrections &      &            & multishapelet\_combo\_flags\_badcorr \\
 %flag\_psfstarcandidate & boolean & Source was a candidate to determine the PSF         &                            &             & psfStarCandidate  \\
 %flag\_calib\_psfstarcandidate & boolean & Source was a candidate to determine the PSF         &                            &             & calib\_psfStarCandidate  \\
